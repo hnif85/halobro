@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Detail — HaloBro CRM Preview</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-base:       #0d0d0f;
+      --bg-surface:    #141416;
+      --bg-elevated:   #1c1c1f;
+      --bg-hover:      #222226;
+      --border:        rgba(255,255,255,0.07);
+      --border-active: rgba(255,255,255,0.12);
+      --accent-violet: #7c3aed;
+      --accent-violet-dim: rgba(124,58,237,0.15);
+      --accent-lime:   #84cc16;
+      --accent-red:    #ef4444;
+      --accent-amber:  #f59e0b;
+      --accent-blue:   #3b82f6;
+      --accent-emerald:#10b981;
+      --text-primary:  #f4f4f5;
+      --text-secondary:#a1a1aa;
+      --text-muted:    #71717a;
+    }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    /* === CARD === */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+
+    /* === BADGE === */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .badge-lime   { background: rgba(132,204,22,0.12); color: #a3e635; }
+    .badge-violet { background: rgba(124,58,237,0.15); color: #a78bfa; }
+    .badge-amber  { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .badge-red    { background: rgba(239,68,68,0.12);  color: #f87171; }
+    .badge-zinc   { background: rgba(255,255,255,0.07); color: var(--text-muted); }
+    .badge-blue   { background: rgba(59,130,246,0.12); color: #93c5fd; }
+
+    /* === AVATAR === */
+    .avatar {
+      border-radius: 50%;
+      background: var(--accent-violet-dim);
+      border: 1px solid rgba(124,58,237,0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600;
+      color: #a78bfa;
+      flex-shrink: 0;
+    }
+    .avatar-lg { width: 52px; height: 52px; font-size: 18px; }
+    .avatar-sm { width: 28px; height: 28px; font-size: 11px; }
+
+    /* === LAYOUT === */
+    .page { max-width: 1200px; margin: 0 auto; }
+    .header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+    .header-back {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--bg-surface); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); cursor: pointer; flex-shrink: 0;
+    }
+    .header-info { flex: 1; }
+    .header-name { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+    .header-meta { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+    .header-phone { font-size: 12px; color: var(--accent-lime); }
+
+    .grid-main {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .col-main { display: flex; flex-direction: column; gap: 20px; }
+    .col-side { display: flex; flex-direction: column; gap: 16px; }
+
+    /* === SECTION TITLE === */
+    .section-title {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 15px; font-weight: 600;
+      padding: 16px 20px 0;
+    }
+    .section-title svg { opacity: 0.7; }
+    .section-title .icon { font-size: 16px; }
+
+    /* === APP USAGE CARDS === */
+    .app-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 14px 20px 20px;
+    }
+    .app-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      transition: border-color 0.15s;
+    }
+    .app-card:hover { border-color: var(--border-active); }
+    .app-card-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; margin-bottom: 10px;
+    }
+    .app-card-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+    .app-card-pkg  { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+    .app-card-amount {
+      font-size: 18px; font-weight: 700; color: var(--text-primary);
+      margin-top: 10px; letter-spacing: -0.5px;
+    }
+    .app-card-last { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .app-card-bar {
+      height: 3px; border-radius: 2px;
+      background: var(--border); margin-top: 10px; overflow: hidden;
+    }
+    .app-card-bar-fill { height: 100%; border-radius: 2px; }
+
+    /* === USAGE CHART === */
+    .chart-wrap { padding: 0 20px 20px; }
+    .chart-tabs {
+      display: flex; gap: 4px; margin-bottom: 16px;
+    }
+    .chart-tab {
+      padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 500;
+      color: var(--text-muted); cursor: pointer; border: none; background: none;
+      transition: all 0.15s;
+    }
+    .chart-tab.active {
+      background: var(--bg-elevated); color: var(--text-primary);
+      border: 1px solid var(--border-active);
+    }
+
+    .bar-chart { display: flex; align-items: flex-end; gap: 3px; height: 100px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+    .bar-seg { border-radius: 2px; min-height: 2px; transition: opacity 0.15s; }
+    .bar-col:hover .bar-seg { opacity: 0.8; }
+    .chart-labels {
+      display: flex; gap: 3px; margin-top: 6px;
+    }
+    .chart-label {
+      flex: 1; text-align: center; font-size: 9px; color: var(--text-muted);
+    }
+    .chart-legend {
+      display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .chart-legend-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; color: var(--text-secondary);
+    }
+    .chart-legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+    /* === CAMPAIGN HISTORY === */
+    .campaign-list { padding: 0 20px 16px; }
+    .campaign-row {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .campaign-row:last-child { border-bottom: none; }
+    .campaign-name { font-size: 13px; font-weight: 500; }
+    .campaign-date { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .campaign-reply { font-size: 11px; color: rgba(132,204,22,0.7); margin-top: 4px; font-style: italic; }
+    .campaign-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    /* === TRANSACTION TABLE === */
+    .tx-table { width: 100%; border-collapse: collapse; }
+    .tx-table thead th {
+      padding: 10px 16px; text-align: left;
+      font-size: 11px; font-weight: 500; color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-surface);
+      position: sticky; top: 0; z-index: 1;
+    }
+    .tx-table tbody td {
+      padding: 10px 16px; font-size: 12px;
+    }
+    .tx-table tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .tx-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+    .tx-table-wrap { max-height: 260px; overflow-y: auto; border-radius: 0 0 16px 16px; }
+
+    /* === PROFILE CARD (SIDE) === */
+    .profile-rows { padding: 4px 0; }
+    .profile-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 20px; font-size: 12px;
+    }
+    .profile-row-label { color: var(--text-muted); }
+    .profile-row-value { color: var(--text-primary); font-weight: 500; text-align: right; max-width: 160px; }
+
+    /* === SUMMARY MINI === */
+    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 16px; }
+    .summary-cell {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px; text-align: center;
+    }
+    .summary-cell-num { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .summary-cell-label { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+    /* === TREATMENT TIMELINE === */
+    .timeline { padding: 4px 20px 16px; }
+    .timeline-group { margin-bottom: 16px; }
+    .timeline-group-date {
+      font-size: 10px; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    .timeline-items { display: flex; flex-direction: column; gap: 1px; }
+    .timeline-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .timeline-item:last-child { border-bottom: none; }
+    .timeline-dot {
+      width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; margin-top: 1px;
+    }
+    .timeline-dot-violet { background: var(--accent-violet-dim); }
+    .timeline-dot-lime   { background: rgba(132,204,22,0.12); }
+    .timeline-dot-amber  { background: rgba(245,158,11,0.12); }
+    .timeline-dot-blue   { background: rgba(59,130,246,0.12); }
+    .timeline-dot-red    { background: rgba(239,68,68,0.10); }
+    .timeline-text { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+    .timeline-text strong { color: var(--text-primary); font-weight: 500; }
+    .timeline-time { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+    /* === DIVIDER === */
+    hr { border: none; border-top: 1px solid var(--border); }
+
+    /* === SCROLLBAR === */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+    /* === TOOLTIP === */
+    .tooltip-wrap { position: relative; }
+    .bar-col:hover .bar-tooltip {
+      opacity: 1; transform: translateY(-4px);
+    }
+    .bar-tooltip {
+      position: absolute; bottom: calc(100% + 6px); left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-elevated); border: 1px solid var(--border-active);
+      border-radius: 6px; padding: 4px 8px; font-size: 10px; color: var(--text-primary);
+      white-space: nowrap; pointer-events: none;
+      opacity: 0; transition: all 0.15s; z-index: 10;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-back">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M19 12H5M12 5l-7 7 7 7"/>
+      </svg>
+    </div>
+    <div class="avatar avatar-lg">BS</div>
+    <div class="header-info">
+      <div class="header-name">Budi Santoso</div>
+      <div class="header-meta">
+        <span class="header-phone">📞 +62 812-3456-7890</span>
+        <span class="badge badge-lime"><span class="badge-dot" style="background:#84cc16"></span>Aktif</span>
+        <span class="badge badge-violet">SmartWhiz Starter</span>
+      </div>
+    </div>
+    <div style="margin-left:auto; display:flex; gap:8px;">
+      <button style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);color:#a78bfa;font-size:12px;font-weight:500;cursor:pointer;">
+        💬 Kirim WA
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="grid-main">
+
+    <!-- COL MAIN -->
+    <div class="col-main">
+
+      <!-- === APP USAGE CARDS === -->
+      <div class="card">
+        <div class="section-title">
+          <span>📱</span>
+          <span>Penggunaan Aplikasi</span>
+          <span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--text-muted);">3 apps aktif</span>
+        </div>
+        <div class="app-cards">
+
+          <!-- FinanceWhiz -->
+          <div class="app-card">
+            <div class="app-card-icon" style="background:rgba(132,204,22,0.12);">💰</div>
+            <div class="app-card-name">FinanceWhiz</div>
+            <div class="app-card-pkg">Starter Package</div>
+            <div class="app-card-amount">45.000 cr</div>
+            <div class="app-card-last">Terakhir: 2 jam lalu</div>
+            <div class="app-card-bar">
+              <div class="app-card-bar-fill" style="width:85%;background:#84cc16;"></div>
+            </div>
+          </div>
+
+          <!-- SalesWhiz -->
+          <div class="app-card">
+            <div class="app-card-icon" style="background:rgba(59,130,246,0.12);">📊</div>
+            <div class="app-card-name">SalesWhiz</div>
+            <div class="app-card-pkg">Basic Package</div>
+            <div class="app-card-amount">22.000 cr</div>
+            <div class="app-card-last">Terakhir: 1 hari lalu</div>
+            <div class="app-card-bar">
+              <div class="app-card-bar-fill" style="width:42%;background:#3b82f6;"></div>
+            </div>
+          </div>
+
+          <!-- SmartWhiz -->
+          <div class="app-card">
+            <div class="app-card-icon" style="background:rgba(124,58,237,0.15);">🤖</div>
+            <div class="app-card-name">SmartWhiz</div>
+            <div class="app-card-pkg">Starter Package</div>
+            <div class="app-card-amount">8.500 cr</div>
+            <div class="app-card-last">Terakhir: 3 hari lalu</div>
+            <div class="app-card-bar">
+              <div class="app-card-bar-fill" style="width:16%;background:#7c3aed;"></div>
+            </div>
+          </div>
+
+          <!-- CreateWhiz -->
+          <div class="app-card">
+            <div class="app-card-icon" style="background:rgba(245,158,11,0.12);">✏️</div>
+            <div class="app-card-name">CreateWhiz</div>
+            <div class="app-card-pkg">—</div>
+            <div class="app-card-amount">5.000 cr</div>
+            <div class="app-card-last">Terakhir: 5 hari lalu</div>
+            <div class="app-card-bar">
+              <div class="app-card-bar-fill" style="width:10%;background:#f59e0b;"></div>
+            </div>
+          </div>
+
+          <!-- Top Up -->
+          <div class="app-card">
+            <div class="app-card-icon" style="background:rgba(16,185,129,0.12);">💳</div>
+            <div class="app-card-name">Top Up Credit</div>
+            <div class="app-card-pkg">Total masuk</div>
+            <div class="app-card-amount" style="color:#10b981;">+150.000 cr</div>
+            <div class="app-card-last">Terakhir: 7 hari lalu</div>
+            <div class="app-card-bar">
+              <div class="app-card-bar-fill" style="width:100%;background:#10b981;"></div>
+            </div>
+          </div>
+
+          <!-- Sisa Credit -->
+          <div class="app-card" style="border:1px solid rgba(124,58,237,0.2);">
+            <div class="app-card-icon" style="background:var(--accent-violet-dim);">⚡</div>
+            <div class="app-card-name">Sisa Credit</div>
+            <div class="app-card-pkg">Tersedia sekarang</div>
+            <div class="app-card-amount" style="color:#a78bfa;">69.500 cr</div>
+            <div class="app-card-last">Terpakai: 53.7%</div>
+            <div class="app-card-bar">
+              <div class="app-card-bar-fill" style="width:54%;background:var(--accent-violet);"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- === DAILY USAGE CHART === -->
+      <div class="card">
+        <div class="section-title">
+          <span>📈</span>
+          <span>Penggunaan Harian</span>
+        </div>
+        <div class="chart-wrap">
+          <!-- Tabs -->
+          <div class="chart-tabs">
+            <button class="chart-tab">7 Hari</button>
+            <button class="chart-tab active">30 Hari</button>
+            <button class="chart-tab">90 Hari</button>
+          </div>
+
+          <!-- Legend -->
+          <div class="chart-legend">
+            <div class="chart-legend-item">
+              <div class="chart-legend-dot" style="background:#84cc16;"></div>FinanceWhiz
+            </div>
+            <div class="chart-legend-item">
+              <div class="chart-legend-dot" style="background:#3b82f6;"></div>SalesWhiz
+            </div>
+            <div class="chart-legend-item">
+              <div class="chart-legend-dot" style="background:#7c3aed;"></div>SmartWhiz
+            </div>
+            <div class="chart-legend-item">
+              <div class="chart-legend-dot" style="background:#f59e0b;"></div>CreateWhiz
+            </div>
+          </div>
+
+          <!-- Chart -->
+          <div class="bar-chart" id="barChart"></div>
+          <div class="chart-labels" id="chartLabels"></div>
+        </div>
+      </div>
+
+      <!-- === RIWAYAT CAMPAIGN === -->
+      <div class="card">
+        <div class="section-title">
+          <span>📨</span>
+          <span>Riwayat Campaign WA</span>
+          <span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--text-muted);">5 campaign</span>
+        </div>
+        <div class="campaign-list">
+
+          <div class="campaign-row">
+            <div>
+              <div class="campaign-name">Promo Juni 2026</div>
+              <div class="campaign-date">2 Jun 2026</div>
+              <div class="campaign-reply">"Oke siap, mau coba dulu ya kak!"</div>
+            </div>
+            <div class="campaign-right">
+              <span class="badge badge-lime"><span class="badge-dot" style="background:#84cc16;"></span>Replied</span>
+            </div>
+          </div>
+
+          <div class="campaign-row">
+            <div>
+              <div class="campaign-name">Follow Up Trial Expired</div>
+              <div class="campaign-date">18 Mei 2026</div>
+            </div>
+            <div class="campaign-right">
+              <span class="badge badge-blue"><span class="badge-dot" style="background:#3b82f6;"></span>Read</span>
+            </div>
+          </div>
+
+          <div class="campaign-row">
+            <div>
+              <div class="campaign-name">Promo Hari Pendidikan</div>
+              <div class="campaign-date">2 Mei 2026</div>
+            </div>
+            <div class="campaign-right">
+              <span class="badge badge-zinc"><span class="badge-dot" style="background:#71717a;"></span>Delivered</span>
+            </div>
+          </div>
+
+          <div class="campaign-row">
+            <div>
+              <div class="campaign-name">Penawaran SmartWhiz Pro</div>
+              <div class="campaign-date">15 Apr 2026</div>
+              <div class="campaign-reply">"Berapa harganya kak?"</div>
+            </div>
+            <div class="campaign-right">
+              <span class="badge badge-lime"><span class="badge-dot" style="background:#84cc16;"></span>Replied</span>
+            </div>
+          </div>
+
+          <div class="campaign-row">
+            <div>
+              <div class="campaign-name">Welcome Onboarding</div>
+              <div class="campaign-date">1 Mar 2026</div>
+            </div>
+            <div class="campaign-right">
+              <span class="badge badge-blue"><span class="badge-dot" style="background:#3b82f6;"></span>Read</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- === RIWAYAT PEMBELIAN === -->
+      <div class="card">
+        <div class="section-title" style="padding-bottom:16px;">
+          <span>🛒</span>
+          <span>Riwayat Pembelian</span>
+        </div>
+        <div class="tx-table-wrap">
+          <table class="tx-table">
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Tanggal</th>
+                <th>Produk</th>
+                <th>Total</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--text-muted);font-family:monospace;">INV-2026-0341</td>
+                <td style="color:var(--text-muted);">3 Jun 2026</td>
+                <td style="color:var(--text-secondary);">SmartWhiz Starter</td>
+                <td style="font-weight:600;">Rp 299.000</td>
+                <td><span class="badge badge-lime">Paid</span></td>
+              </tr>
+              <tr>
+                <td style="color:var(--text-muted);font-family:monospace;">INV-2026-0218</td>
+                <td style="color:var(--text-muted);">12 Apr 2026</td>
+                <td style="color:var(--text-secondary);">FinanceWhiz + SalesWhiz</td>
+                <td style="font-weight:600;">Rp 450.000</td>
+                <td><span class="badge badge-lime">Paid</span></td>
+              </tr>
+              <tr>
+                <td style="color:var(--text-muted);font-family:monospace;">INV-2026-0089</td>
+                <td style="color:var(--text-muted);">1 Mar 2026</td>
+                <td style="color:var(--text-secondary);">SmartWhiz Trial</td>
+                <td style="font-weight:600;">Rp 0</td>
+                <td><span class="badge badge-violet">Trial</span></td>
+              </tr>
+              <tr>
+                <td style="color:var(--text-muted);font-family:monospace;">INV-2025-1892</td>
+                <td style="color:var(--text-muted);">15 Des 2025</td>
+                <td style="color:var(--text-secondary);">CreateWhiz Basic</td>
+                <td style="font-weight:600;">Rp 199.000</td>
+                <td><span class="badge badge-amber">Pending</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /col-main -->
+
+    <!-- COL SIDE -->
+    <div class="col-side">
+
+      <!-- PROFILE INFO -->
+      <div class="card" style="padding-top:16px;padding-bottom:8px;">
+        <div style="padding:0 20px 12px;font-size:13px;font-weight:600;">Info Profile</div>
+        <hr>
+        <div class="profile-rows" style="padding-top:4px;">
+          <div class="profile-row"><span class="profile-row-label">Nama</span><span class="profile-row-value">Budi Santoso</span></div>
+          <div class="profile-row"><span class="profile-row-label">Email</span><span class="profile-row-value" style="font-size:11px;">budi.santoso@gmail.com</span></div>
+          <div class="profile-row"><span class="profile-row-label">Kota</span><span class="profile-row-value">Bandung</span></div>
+          <div class="profile-row"><span class="profile-row-label">Gender</span><span class="profile-row-value">Laki-laki</span></div>
+          <div class="profile-row"><span class="profile-row-label">Tgl Lahir</span><span class="profile-row-value">12 Agt 1990</span></div>
+          <div class="profile-row"><span class="profile-row-label">Terdaftar</span><span class="profile-row-value">1 Mar 2026</span></div>
+          <div class="profile-row"><span class="profile-row-label">Status</span><span class="profile-row-value"><span class="badge badge-lime">Aktif</span></span></div>
+        </div>
+      </div>
+
+      <!-- RINGKASAN -->
+      <div class="card" style="padding-top:16px;">
+        <div style="padding:0 20px 12px;font-size:13px;font-weight:600;">Ringkasan</div>
+        <hr>
+        <div class="summary-grid" style="margin-top:12px;">
+          <div class="summary-cell">
+            <div class="summary-cell-num">4</div>
+            <div class="summary-cell-label">Pesanan</div>
+          </div>
+          <div class="summary-cell">
+            <div class="summary-cell-num" style="color:var(--accent-lime);font-size:16px;">Rp 948rb</div>
+            <div class="summary-cell-label">Total Spend</div>
+          </div>
+          <div class="summary-cell">
+            <div class="summary-cell-num" style="color:#a78bfa;">3</div>
+            <div class="summary-cell-label">Apps Aktif</div>
+          </div>
+          <div class="summary-cell">
+            <div class="summary-cell-num" style="color:#fbbf24;">2</div>
+            <div class="summary-cell-label">Campaign Reply</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TREATMENT TIMELINE -->
+      <div class="card" style="padding-top:16px;">
+        <div style="padding:0 20px 12px;font-size:13px;font-weight:600;">Treatment Timeline</div>
+        <hr>
+        <div class="timeline">
+
+          <div class="timeline-group">
+            <div class="timeline-group-date">Hari ini</div>
+            <div class="timeline-items">
+              <div class="timeline-item">
+                <div class="timeline-dot timeline-dot-lime">📱</div>
+                <div>
+                  <div class="timeline-text">Pakai <strong>FinanceWhiz</strong> — 3.500 cr</div>
+                  <div class="timeline-time">09:14</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-group">
+            <div class="timeline-group-date">2 Jun 2026</div>
+            <div class="timeline-items">
+              <div class="timeline-item">
+                <div class="timeline-dot timeline-dot-violet">💬</div>
+                <div>
+                  <div class="timeline-text">Reply campaign <strong>Promo Juni</strong></div>
+                  <div class="timeline-time">14:22</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot timeline-dot-blue">📨</div>
+                <div>
+                  <div class="timeline-text">Terima campaign <strong>Promo Juni 2026</strong></div>
+                  <div class="timeline-time">10:00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-group">
+            <div class="timeline-group-date">3 Jun 2026</div>
+            <div class="timeline-items">
+              <div class="timeline-item">
+                <div class="timeline-dot timeline-dot-lime">🛒</div>
+                <div>
+                  <div class="timeline-text">Beli <strong>SmartWhiz Starter</strong> — Rp 299.000</div>
+                  <div class="timeline-time">11:30</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-group">
+            <div class="timeline-group-date">28 Mei 2026</div>
+            <div class="timeline-items">
+              <div class="timeline-item">
+                <div class="timeline-dot timeline-dot-amber">💳</div>
+                <div>
+                  <div class="timeline-text">Top up credit <strong>+50.000 cr</strong></div>
+                  <div class="timeline-time">16:05</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-group">
+            <div class="timeline-group-date">18 Mei 2026</div>
+            <div class="timeline-items">
+              <div class="timeline-item">
+                <div class="timeline-dot timeline-dot-blue">📨</div>
+                <div>
+                  <div class="timeline-text">Baca campaign <strong>Follow Up Trial</strong></div>
+                  <div class="timeline-time">08:41</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-group">
+            <div class="timeline-group-date">12 Apr 2026</div>
+            <div class="timeline-items">
+              <div class="timeline-item">
+                <div class="timeline-dot timeline-dot-lime">🛒</div>
+                <div>
+                  <div class="timeline-text">Beli <strong>FinanceWhiz + SalesWhiz</strong> — Rp 450.000</div>
+                  <div class="timeline-time">13:17</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /col-side -->
+
+  </div><!-- /grid-main -->
+
+</div><!-- /page -->
+
+<script>
+  // Mock data: 30 hari
+  const days = 30;
+  const apps = [
+    { name: "FinanceWhiz", color: "#84cc16" },
+    { name: "SalesWhiz",   color: "#3b82f6" },
+    { name: "SmartWhiz",   color: "#7c3aed" },
+    { name: "CreateWhiz",  color: "#f59e0b" },
+  ];
+
+  // Generate mock daily data
+  function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  const data = Array.from({ length: days }, (_, i) => {
+    const active = Math.random() > 0.35;
+    return active
+      ? apps.map(a => rand(0, a.name === "FinanceWhiz" ? 8 : a.name === "SalesWhiz" ? 5 : 3))
+      : apps.map(() => 0);
+  });
+
+  // Max for scaling
+  const maxVal = Math.max(...data.map(d => d.reduce((a,b) => a+b, 0)));
+
+  // Labels (show every 5th)
+  const now = new Date();
+  const labels = Array.from({ length: days }, (_, i) => {
+    const d = new Date(now - (days - 1 - i) * 86400000);
+    return i % 5 === 0 ? `${d.getDate()}/${d.getMonth()+1}` : "";
+  });
+
+  const chartEl = document.getElementById("barChart");
+  const labelsEl = document.getElementById("chartLabels");
+
+  data.forEach((dayData, i) => {
+    const total = dayData.reduce((a,b) => a+b, 0);
+    const col = document.createElement("div");
+    col.className = "bar-col tooltip-wrap";
+    col.style.position = "relative";
+
+    if (total > 0) {
+      // Tooltip
+      const tip = document.createElement("div");
+      tip.className = "bar-tooltip";
+      tip.textContent = `${labels[i] || ""} — ${total} cr`;
+      col.appendChild(tip);
+
+      // Segments (stacked)
+      dayData.forEach((val, ai) => {
+        if (val === 0) return;
+        const seg = document.createElement("div");
+        seg.className = "bar-seg";
+        seg.style.background = apps[ai].color;
+        seg.style.height = `${Math.max(3, (val / maxVal) * 100)}px`;
+        seg.style.opacity = "0.85";
+        col.appendChild(seg);
+      });
+    }
+
+    chartEl.appendChild(col);
+
+    const lbl = document.createElement("div");
+    lbl.className = "chart-label";
+    lbl.textContent = labels[i];
+    labelsEl.appendChild(lbl);
+  });
+</script>
+</body>
+</html>

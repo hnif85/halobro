@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Event Analytics — HaloBro CRM Preview</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-base:       #0d0d0f;
+      --bg-surface:    #141416;
+      --bg-elevated:   #1c1c1f;
+      --bg-hover:      #222226;
+      --border:        rgba(255,255,255,0.07);
+      --border-active: rgba(255,255,255,0.13);
+      --accent-violet: #7c3aed;
+      --accent-violet-dim: rgba(124,58,237,0.15);
+      --accent-lime:   #84cc16;
+      --accent-amber:  #f59e0b;
+      --accent-blue:   #3b82f6;
+      --accent-emerald:#10b981;
+      --accent-red:    #ef4444;
+      --text-primary:  #f4f4f5;
+      --text-secondary:#a1a1aa;
+      --text-muted:    #71717a;
+    }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      padding: 32px 32px;
+      min-height: 100vh;
+    }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .section-count {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 10px;
+    }
+
+    /* ── EVENT LIST ── */
+    .event-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* ── EVENT CARD ── */
+    .event-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .event-card.open {
+      border-color: var(--border-active);
+    }
+
+    /* ── EVENT ROW (clickable header) ── */
+    .event-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 16px 22px;
+      cursor: pointer;
+      transition: background 0.12s;
+      user-select: none;
+    }
+    .event-row:hover { background: rgba(255,255,255,0.03); }
+    .event-card.open .event-row { background: rgba(255,255,255,0.025); }
+
+    .event-icon {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      background: var(--accent-violet-dim);
+      border: 1px solid rgba(124,58,237,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+
+    .event-info { flex: 1; min-width: 0; }
+    .event-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .event-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 3px;
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+    .event-meta-sep { color: rgba(255,255,255,0.15); }
+
+    /* Pills */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .pill-violet { background: var(--accent-violet-dim); color: #a78bfa; }
+    .pill-lime   { background: rgba(132,204,22,0.12); color: #a3e635; }
+    .pill-amber  { background: rgba(245,158,11,0.12); color: #fbbf24; }
+    .pill-blue   { background: rgba(59,130,246,0.12); color: #93c5fd; }
+    .pill-zinc   { background: rgba(255,255,255,0.07); color: var(--text-muted); }
+
+    /* Stats row */
+    .event-stats {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      flex-shrink: 0;
+    }
+    .stat-item { text-align: right; }
+    .stat-num  { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+    .stat-lbl  { font-size: 10px; color: var(--text-muted); }
+
+    /* Active rate bar */
+    .rate-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      min-width: 120px;
+    }
+    .rate-bar {
+      width: 120px; height: 4px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .rate-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--accent-lime);
+    }
+    .rate-pct { font-size: 11px; color: #a3e635; font-weight: 600; }
+
+    /* Chevron */
+    .chevron {
+      width: 20px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .event-card.open .chevron { transform: rotate(180deg); }
+
+    /* ── DETAIL PANEL ── */
+    .event-detail {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .event-card.open .event-detail { max-height: 600px; }
+
+    .detail-inner {
+      border-top: 1px solid var(--border);
+      padding: 20px 22px;
+    }
+
+    /* Split grid */
+    .split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .split-panel {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .split-header {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .split-title {
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .split-users {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .split-users strong { color: var(--text-primary); }
+
+    /* App table inside panel */
+    .app-table { width: 100%; }
+    .app-row {
+      display: flex;
+      align-items: center;
+      padding: 9px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      gap: 10px;
+    }
+    .app-row:last-child { border-bottom: none; }
+    .app-dot {
+      width: 8px; height: 8px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .app-name {
+      font-size: 12px;
+      color: var(--text-secondary);
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .app-vals {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 1px;
+      flex-shrink: 0;
+    }
+    .app-users {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .app-credit {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* Mini progress per app */
+    .app-bar-wrap {
+      width: 48px;
+      height: 3px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 2px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .app-bar-fill { height: 100%; border-radius: 2px; }
+
+    /* Total footer */
+    .split-footer {
+      padding: 10px 14px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .split-total-lbl { font-size: 11px; color: var(--text-muted); }
+    .split-total-val { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+
+    /* Empty state */
+    .empty-panel {
+      padding: 28px 14px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+    /* ── DIVIDER ── */
+    .detail-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .detail-divider::before,
+    .detail-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<div style="width: 100%;">
+
+  <!-- SECTION HEADER -->
+  <div class="section-header">
+    <div>
+      <div class="section-title">
+        🎓 Aktivitas Per Event
+      </div>
+      <div class="section-sub">Penggunaan aplikasi peserta — hari event vs luar event</div>
+    </div>
+    <div class="section-count">5 event</div>
+  </div>
+
+  <!-- EVENT LIST -->
+  <div class="event-list" id="eventList"></div>
+
+</div>
+
+<script>
+// ── MOCK DATA ──────────────────────────────────────────────────────────
+const APP_COLORS = {
+  "FinanceWhiz": "#84cc16",
+  "SalesWhiz":   "#3b82f6",
+  "SmartWhiz":   "#7c3aed",
+  "CreateWhiz":  "#f59e0b",
+  "SMEWhiz":     "#10b981",
+};
+
+const EVENTS = [
+  {
+    id: "evt-1",
+    name: "Juragan UMKM — Kab. Bandung Barat",
+    date: "21 Mei 2026",
+    location: "Ngamprah, Bandung Barat",
+    type: "Offline",
+    totalEnrolled: 84,
+    activeUsers: 47,
+    onEvent: {
+      userCount: 23,
+      totalCredit: 12400,
+      apps: [
+        { name: "FinanceWhiz", users: 18, credit: 6800 },
+        { name: "SalesWhiz",   users: 9,  credit: 3200 },
+        { name: "SmartWhiz",   users: 5,  credit: 1600 },
+        { name: "CreateWhiz",  users: 3,  credit: 800  },
+      ],
+    },
+    offEvent: {
+      userCount: 38,
+      totalCredit: 45800,
+      apps: [
+        { name: "FinanceWhiz", users: 31, credit: 19200 },
+        { name: "SalesWhiz",   users: 15, credit: 12400 },
+        { name: "SmartWhiz",   users: 12, credit: 8600  },
+        { name: "CreateWhiz",  users: 7,  credit: 3800  },
+        { name: "SMEWhiz",     users: 4,  credit: 1800  },
+      ],
+    },
+  },
+  {
+    id: "evt-2",
+    name: "Impact Plus — Surakarta",
+    date: "10 Apr 2026",
+    location: "Solo, Jawa Tengah",
+    type: "Hybrid",
+    totalEnrolled: 120,
+    activeUsers: 73,
+    onEvent: {
+      userCount: 41,
+      totalCredit: 28600,
+      apps: [
+        { name: "FinanceWhiz", users: 35, credit: 14200 },
+        { name: "SalesWhiz",   users: 22, credit: 8400  },
+        { name: "SmartWhiz",   users: 14, credit: 4800  },
+        { name: "SMEWhiz",     users: 8,  credit: 1200  },
+      ],
+    },
+    offEvent: {
+      userCount: 58,
+      totalCredit: 89400,
+      apps: [
+        { name: "FinanceWhiz", users: 51, credit: 42000 },
+        { name: "SalesWhiz",   users: 38, credit: 24800 },
+        { name: "SmartWhiz",   users: 29, credit: 14200 },
+        { name: "CreateWhiz",  users: 16, credit: 5600  },
+        { name: "SMEWhiz",     users: 11, credit: 2800  },
+      ],
+    },
+  },
+  {
+    id: "evt-3",
+    name: "UMKM Digital — Jakarta Selatan",
+    date: "22 Mar 2026",
+    location: "Jakarta Selatan",
+    type: "Offline",
+    totalEnrolled: 95,
+    activeUsers: 31,
+    onEvent: {
+      userCount: 12,
+      totalCredit: 5200,
+      apps: [
+        { name: "FinanceWhiz", users: 9,  credit: 2800 },
+        { name: "SmartWhiz",   users: 5,  credit: 1600 },
+        { name: "SalesWhiz",   users: 3,  credit: 800  },
+      ],
+    },
+    offEvent: {
+      userCount: 24,
+      totalCredit: 18900,
+      apps: [
+        { name: "FinanceWhiz", users: 19, credit: 9200 },
+        { name: "SalesWhiz",   users: 11, credit: 5400 },
+        { name: "SmartWhiz",   users: 8,  credit: 3100 },
+        { name: "CreateWhiz",  users: 4,  credit: 1200 },
+      ],
+    },
+  },
+  {
+    id: "evt-4",
+    name: "Pelatihan Keuangan UMKM — Surabaya",
+    date: "14 Feb 2026",
+    location: "Surabaya, Jawa Timur",
+    type: "Online",
+    totalEnrolled: 210,
+    activeUsers: 142,
+    onEvent: {
+      userCount: 98,
+      totalCredit: 64200,
+      apps: [
+        { name: "FinanceWhiz", users: 87, credit: 38400 },
+        { name: "SalesWhiz",   users: 54, credit: 16200 },
+        { name: "SmartWhiz",   users: 41, credit: 7200  },
+        { name: "CreateWhiz",  users: 22, credit: 1800  },
+        { name: "SMEWhiz",     users: 12, credit: 600   },
+      ],
+    },
+    offEvent: {
+      userCount: 118,
+      totalCredit: 182400,
+      apps: [
+        { name: "FinanceWhiz", users: 108, credit: 98200 },
+        { name: "SalesWhiz",   users: 79,  credit: 48600 },
+        { name: "SmartWhiz",   users: 61,  credit: 24800 },
+        { name: "CreateWhiz",  users: 38,  credit: 8400  },
+        { name: "SMEWhiz",     users: 21,  credit: 2400  },
+      ],
+    },
+  },
+  {
+    id: "evt-5",
+    name: "Startup Weekend — Yogyakarta",
+    date: "3 Jan 2026",
+    location: "Yogyakarta",
+    type: "Offline",
+    totalEnrolled: 48,
+    activeUsers: 8,
+    onEvent: {
+      userCount: 0,
+      totalCredit: 0,
+      apps: [],
+    },
+    offEvent: {
+      userCount: 8,
+      totalCredit: 3400,
+      apps: [
+        { name: "SmartWhiz",   users: 6,  credit: 2200 },
+        { name: "FinanceWhiz", users: 3,  credit: 1200 },
+      ],
+    },
+  },
+];
+
+// ── FORMAT HELPERS ──────────────────────────────────────────────────────
+function fmtCredit(n) {
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k cr';
+  return n + ' cr';
+}
+function fmtNum(n) {
+  return n.toLocaleString('id-ID');
+}
+
+// ── TYPE PILL COLOR ──────────────────────────────────────────────────────
+function typePill(type) {
+  const map = { "Offline": "pill-violet", "Online": "pill-blue", "Hybrid": "pill-lime" };
+  return map[type] || "pill-zinc";
+}
+
+// ── BUILD APP TABLE ──────────────────────────────────────────────────────
+function buildAppTable(side, maxUsers) {
+  if (!side.apps || side.apps.length === 0) {
+    return `<div class="empty-panel">Tidak ada aktivitas</div>`;
+  }
+
+  const rows = side.apps.map(app => {
+    const color = APP_COLORS[app.name] || '#71717a';
+    const barPct = maxUsers > 0 ? Math.round((app.users / maxUsers) * 100) : 0;
+    return `
+      <div class="app-row">
+        <div class="app-dot" style="background:${color};"></div>
+        <div class="app-name">${app.name}</div>
+        <div class="app-bar-wrap">
+          <div class="app-bar-fill" style="width:${barPct}%;background:${color};opacity:0.7;"></div>
+        </div>
+        <div class="app-vals">
+          <div class="app-users">${app.users} org</div>
+          <div class="app-credit">${fmtCredit(app.credit)}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `<div class="app-table">${rows}</div>`;
+}
+
+// ── BUILD EVENT CARD ──────────────────────────────────────────────────────
+function buildCard(ev) {
+  const activeRate = ev.totalEnrolled > 0
+    ? Math.round((ev.activeUsers / ev.totalEnrolled) * 100)
+    : 0;
+
+  // max users across both sides for bar scaling
+  const allUsers = [
+    ...ev.onEvent.apps.map(a => a.users),
+    ...ev.offEvent.apps.map(a => a.users),
+  ];
+  const maxUsers = Math.max(...allUsers, 1);
+
+  const onTable  = buildAppTable(ev.onEvent,  maxUsers);
+  const offTable = buildAppTable(ev.offEvent, maxUsers);
+
+  // color for active rate
+  const rateColor = activeRate >= 60 ? '#84cc16'
+                  : activeRate >= 30 ? '#f59e0b'
+                  : '#ef4444';
+
+  return `
+<div class="event-card" id="card-${ev.id}">
+
+  <!-- ROW (header) -->
+  <div class="event-row" onclick="toggleCard('${ev.id}')">
+    <div class="event-icon">🎓</div>
+
+    <div class="event-info">
+      <div class="event-name">${ev.name}</div>
+      <div class="event-meta">
+        <span>📅 ${ev.date}</span>
+        <span class="event-meta-sep">·</span>
+        <span>📍 ${ev.location}</span>
+        <span class="event-meta-sep">·</span>
+        <span class="pill ${typePill(ev.type)}">${ev.type}</span>
+      </div>
+    </div>
+
+    <div class="event-stats">
+      <div class="stat-item">
+        <div class="stat-num">${fmtNum(ev.totalEnrolled)}</div>
+        <div class="stat-lbl">Peserta</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" style="color:#a78bfa;">${fmtNum(ev.activeUsers)}</div>
+        <div class="stat-lbl">Aktif</div>
+      </div>
+      <div class="rate-wrap">
+        <div class="rate-pct" style="color:${rateColor};">${activeRate}%</div>
+        <div class="rate-bar">
+          <div class="rate-fill" style="width:${activeRate}%;background:${rateColor};"></div>
+        </div>
+        <div class="stat-lbl">activation</div>
+      </div>
+    </div>
+
+    <div class="chevron">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <path d="M6 9l6 6 6-6"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="event-detail" id="detail-${ev.id}">
+    <div class="detail-inner">
+
+      <div class="detail-divider">breakdown penggunaan aplikasi</div>
+
+      <div class="split-grid">
+
+        <!-- HARI EVENT -->
+        <div class="split-panel">
+          <div class="split-header">
+            <div class="split-title">
+              📅 Hari Event
+            </div>
+            <div class="split-users">
+              <strong>${ev.onEvent.userCount}</strong> pengguna
+            </div>
+          </div>
+          ${onTable}
+          <div class="split-footer">
+            <div class="split-total-lbl">Total credit</div>
+            <div class="split-total-val" style="color:#a78bfa;">${fmtCredit(ev.onEvent.totalCredit)}</div>
+          </div>
+        </div>
+
+        <!-- LUAR EVENT -->
+        <div class="split-panel">
+          <div class="split-header">
+            <div class="split-title">
+              📆 Luar Event
+            </div>
+            <div class="split-users">
+              <strong>${ev.offEvent.userCount}</strong> pengguna
+            </div>
+          </div>
+          ${offTable}
+          <div class="split-footer">
+            <div class="split-total-lbl">Total credit</div>
+            <div class="split-total-val" style="color:#84cc16;">${fmtCredit(ev.offEvent.totalCredit)}</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>`;
+}
+
+// ── TOGGLE ──────────────────────────────────────────────────────────────
+function toggleCard(id) {
+  const card = document.getElementById('card-' + id);
+  card.classList.toggle('open');
+}
+
+// ── RENDER ──────────────────────────────────────────────────────────────
+const list = document.getElementById('eventList');
+list.innerHTML = EVENTS.map(buildCard).join('');
+
+// Auto-open first card so user sees the detail immediately
+document.getElementById('card-' + EVENTS[0].id).classList.add('open');
+</script>
+</body>
+</html>

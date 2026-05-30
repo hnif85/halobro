@@ -1,0 +1,38 @@
+import jwt from "jsonwebtoken";
+import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+
+const SECRET = process.env.JWT_SECRET;
+if (!SECRET) throw new Error("JWT_SECRET environment variable is required");
+const COOKIE_NAME = "halobro_session";
+
+export interface SessionUser {
+  id: number;
+  email: string;
+  name: string;
+  role: string;
+}
+
+export async function getSession(): Promise<SessionUser | null> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(COOKIE_NAME)?.value;
+    if (!token) return null;
+
+    const payload = jwt.verify(token, SECRET) as SessionUser;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+export function requireAuth(req: NextRequest): SessionUser | null {
+  const token = req.cookies.get(COOKIE_NAME)?.value;
+  if (!token) return null;
+
+  try {
+    return jwt.verify(token, SECRET) as SessionUser;
+  } catch {
+    return null;
+  }
+}
