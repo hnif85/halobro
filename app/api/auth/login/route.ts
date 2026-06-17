@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     const token = jwt.sign(
       { id: user.id, email: user.email, name: user.name, role: user.role },
       SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "90d" }
     );
 
     resetRateLimit(ip);
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 60 * 24 * 90,
       path: "/",
     });
 
