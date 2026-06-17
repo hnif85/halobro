@@ -80,20 +80,20 @@ export async function POST(req: NextRequest) {
     resetRateLimit(ip);
     resetRateLimit(`email:${email}`);
 
-    const response = NextResponse.json({
-      success: true,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
-    });
+    const maxAgeSeconds = 90 * 24 * 60 * 60;
+    const isProduction = process.env.NODE_ENV === "production";
+    const cookieValue = `${COOKIE_NAME}=${token}; Max-Age=${maxAgeSeconds}; Path=/; HttpOnly; SameSite=Lax${isProduction ? "; Secure" : ""}`;
 
-    response.cookies.set(COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 90,
-      path: "/",
-    });
-
-    return response;
+    return NextResponse.json(
+      {
+        success: true,
+        user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      },
+      {
+        status: 200,
+        headers: { "Set-Cookie": cookieValue },
+      }
+    );
   } catch (err) {
     console.error("Login error:", err);
     return NextResponse.json({ error: "Terjadi kesalahan server" }, { status: 500 });
