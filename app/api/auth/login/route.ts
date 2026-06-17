@@ -82,14 +82,16 @@ export async function POST(req: NextRequest) {
 
     const maxAgeSeconds = 90 * 24 * 60 * 60;
     const isProduction = process.env.NODE_ENV === "production";
-    const cookieValue = `${COOKIE_NAME}=${token}; Max-Age=${maxAgeSeconds}; Path=/; HttpOnly; SameSite=Lax${isProduction ? "; Secure" : ""}`;
+    const secure = isProduction ? "; Secure" : "";
+    const cookieHeader = `${COOKIE_NAME}=${token}; Max-Age=${maxAgeSeconds}; Path=/; HttpOnly; SameSite=Lax${secure}`;
 
-    const response = NextResponse.json({
+    return new Response(JSON.stringify({
       success: true,
       user: { id: user.id, email: user.email, name: user.name, role: user.role },
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", "Set-Cookie": cookieHeader },
     });
-    response.headers.set("Set-Cookie", cookieValue);
-    return response;
   } catch (err) {
     console.error("Login error:", err);
     return NextResponse.json({ error: "Terjadi kesalahan server" }, { status: 500 });
