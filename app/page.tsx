@@ -1,7 +1,12 @@
-import { getSession } from "@/lib/auth";
-import { redirect } from "next/navigation";
+"use client";
 
-export default async function RootPage() {
-  const session = await getSession();
-  redirect(session ? "/benar-foundation" : "/login");
+import { useEffect } from "react";
+
+export default function RootPage() {
+  useEffect(() => {
+    const token = localStorage.getItem("halobro_token");
+    window.location.href = token ? "/benar-foundation" : "/login";
+  }, []);
+
+  return null;
 }

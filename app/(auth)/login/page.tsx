@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, MessageSquare } from "lucide-react";
 
@@ -10,6 +10,10 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    localStorage.removeItem("halobro_token");
+  }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -31,6 +35,8 @@ export default function LoginPage() {
         return;
       }
 
+      const data = await res.json();
+      localStorage.setItem("halobro_token", data.token);
       window.location.href = "/dashboard";
     } catch (err) {
       setError("Terjadi kesalahan koneksi");

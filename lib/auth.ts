@@ -33,12 +33,8 @@ export async function getSession(): Promise<SessionUser | null> {
 }
 
 export function requireAuth(req: NextRequest): SessionUser | null {
-  let token = req.cookies.get(COOKIE_NAME)?.value;
-  if (!token) {
-    const cookieHeader = req.headers.get("cookie") || "";
-    const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]*)`));
-    token = match?.[1];
-  }
+  const authHeader = req.headers.get("authorization") || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
   if (!token) return null;
 
   try {

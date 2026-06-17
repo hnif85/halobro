@@ -82,22 +82,14 @@ export async function POST(req: NextRequest) {
 
     const response = NextResponse.json({
       success: true,
+      token,
       user: { id: user.id, email: user.email, name: user.name, role: user.role },
     });
 
-    response.cookies.set({
-      name: COOKIE_NAME,
-      value: token,
-      maxAge: 90 * 24 * 60 * 60,
-      path: "/",
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-    });
-
-    // Also set via header as fallback
-    const cookieHeader = `${COOKIE_NAME}=${token}; Max-Age=${90 * 24 * 60 * 60}; Path=/; HttpOnly; SameSite=Lax`;
-    response.headers.set("Set-Cookie", cookieHeader);
+    response.headers.set(
+      "Set-Cookie",
+      `${COOKIE_NAME}=${token}; Max-Age=${90 * 24 * 60 * 60}; Path=/; HttpOnly; SameSite=Lax; Secure`
+    );
 
     return response;
   } catch (err) {
