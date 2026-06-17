@@ -16,7 +16,13 @@ export interface SessionUser {
 export async function getSession(): Promise<SessionUser | null> {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get(COOKIE_NAME)?.value;
+    let token = cookieStore.get(COOKIE_NAME)?.value;
+    if (!token) {
+      const allCookies = cookieStore.getAll();
+      for (const c of allCookies) {
+        if (c.name === COOKIE_NAME) { token = c.value; break; }
+      }
+    }
     if (!token) return null;
 
     const payload = jwt.verify(token, SECRET) as unknown as SessionUser;
