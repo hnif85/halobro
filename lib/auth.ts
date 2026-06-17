@@ -27,7 +27,12 @@ export async function getSession(): Promise<SessionUser | null> {
 }
 
 export function requireAuth(req: NextRequest): SessionUser | null {
-  const token = req.cookies.get(COOKIE_NAME)?.value;
+  let token = req.cookies.get(COOKIE_NAME)?.value;
+  if (!token) {
+    const cookieHeader = req.headers.get("cookie") || "";
+    const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]*)`));
+    token = match?.[1];
+  }
   if (!token) return null;
 
   try {

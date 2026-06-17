@@ -84,16 +84,12 @@ export async function POST(req: NextRequest) {
     const isProduction = process.env.NODE_ENV === "production";
     const cookieValue = `${COOKIE_NAME}=${token}; Max-Age=${maxAgeSeconds}; Path=/; HttpOnly; SameSite=Lax${isProduction ? "; Secure" : ""}`;
 
-    return NextResponse.json(
-      {
-        success: true,
-        user: { id: user.id, email: user.email, name: user.name, role: user.role },
-      },
-      {
-        status: 200,
-        headers: { "Set-Cookie": cookieValue },
-      }
-    );
+    const response = NextResponse.json({
+      success: true,
+      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+    });
+    response.headers.set("Set-Cookie", cookieValue);
+    return response;
   } catch (err) {
     console.error("Login error:", err);
     return NextResponse.json({ error: "Terjadi kesalahan server" }, { status: 500 });
