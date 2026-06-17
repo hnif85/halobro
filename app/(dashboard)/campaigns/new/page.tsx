@@ -48,8 +48,12 @@ export default function NewCampaignPage() {
   const [search, setSearch] = useState("");
   const [sending, setSending] = useState(false);
   const [sendingResult, setSendingResult] = useState<{ sent: number; failed: number } | null>(null);
+  const [variableConfigs, setVariableConfigs] = useState<Record<string, { type: "dynamic" | "fixed"; source?: string; value?: string }>>({});
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const templateVars = selectedTemplate?.variables as { list?: string[] } | undefined;
+  const showVariableInputs = templateVars?.list && templateVars.list.length > 0;
 
   useEffect(() => {
     fetch("/api/training-events")
@@ -127,6 +131,7 @@ export default function NewCampaignPage() {
           name: campaignName || `Campaign ${new Date().toLocaleDateString("id-ID")}`,
           message_type: messageType,
           template_name: messageType === "template" ? templateName : undefined,
+          template_components_json: messageType === "template" ? variableConfigs : undefined,
           text_body: messageType === "text" ? textBody : undefined,
           status: "draft",
         }),
@@ -318,7 +323,7 @@ export default function NewCampaignPage() {
       )}
 
       {step === 2 && (
-        <div className="card p-6 space-y-5 max-w-lg">
+        <div className="card p-6 space-y-5 max-w-2xl">
           <h2 className="text-lg font-semibold text-white">Pilih Template / Jenis Pesan</h2>
           <div className="flex gap-2">
             {(["template", "text"] as const).map((type) => (
@@ -346,6 +351,15 @@ export default function NewCampaignPage() {
                   const tpl = templateList.find((t) => t.name === e.target.value);
                   setTemplateName(e.target.value);
                   setSelectedTemplate(tpl || null);
+                  if (tpl?.variables) {
+                    const vars = tpl.variables as { list?: string[] };
+                    const list = vars.list || [];
+                    const init: Record<string, { type: "dynamic" | "fixed"; source?: string; value?: string }> = {};
+                    list.forEach((v) => { init[v] = { type: "fixed", value: "" }; });
+                    setVariableConfigs(init);
+                  } else {
+                    setVariableConfigs({});
+                  }
                   if (!campaignName && tpl) {
                     setCampaignName(tpl.display_name);
                   }
@@ -372,6 +386,67 @@ export default function NewCampaignPage() {
                       <span className="text-amber-400">⏳ {selectedTemplate.damcorp_status}</span>
                     )}
                   </p>
+                </div>
+              )}
+              {showVariableInputs && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-white">Isi Variabel</h3>
+                  {templateVars!.list!.map((v: string) => {
+                    const c = (selectedTemplate!.content || "").replace(/^\[[A-Z]+\]\s*/g, "");
+                    const placeholder = `{{${v}}}`;
+                    const config = variableConfigs[v] || { type: "fixed" as const, value: "" };
+                    const idx = c.indexOf(placeholder);
+                    const context = idx >= 0
+                      ? "..." + c.slice(Math.max(0, idx - 25), idx + placeholder.length + 25) + "..."
+                      : c.slice(0, 60);
+                    const isManual = config.type === "fixed";
+                    return (
+                      <div key={v} className="flex items-center gap-3 py-2.5">
+                        <span className="text-xs bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded font-mono shrink-0">
+                          {placeholder}
+                        </span>
+                        <span className="text-xs text-zinc-500 truncate flex-1 min-w-0">{context}</span>
+                        <select
+                          value={isManual ? "__manual__" : (config.source || "full_name")}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "__manual__") {
+                              setVariableConfigs((prev) => ({
+                                ...prev,
+                                [v]: { type: "fixed" as const, value: prev[v]?.value || "" },
+                              }));
+                            } else {
+                              setVariableConfigs((prev) => ({
+                                ...prev,
+                                [v]: { type: "dynamic" as const, source: val },
+                              }));
+                            }
+                          }}
+                          className="input-field text-sm w-40 shrink-0"
+                        >
+                          <option value="full_name">Nama Customer</option>
+                          <option value="phone_number">Nomor HP</option>
+                          <option value="email">Email</option>
+                          <option value="city">Kota</option>
+                          <option value="username">Username</option>
+                          <option value="__sep__" disabled>──────────</option>
+                          <option value="__manual__">✏️ Isi Manual</option>
+                        </select>
+                        {isManual && (
+                          <input
+                            type="text"
+                            value={config.value || ""}
+                            onChange={(e) => setVariableConfigs((prev) => ({
+                              ...prev,
+                              [v]: { ...prev[v], type: "fixed" as const, value: e.target.value },
+                            }))}
+                            className="input-field text-sm w-36 shrink-0"
+                            placeholder={`Isi ${placeholder}...`}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -410,7 +485,7 @@ export default function NewCampaignPage() {
       )}
 
       {step === 3 && (
-        <div className="card p-6 space-y-5 max-w-lg">
+        <div className="card p-6 space-y-5 max-w-2xl">
           <h2 className="text-lg font-semibold text-white">Review Campaign</h2>
 
           <div className="space-y-3">
@@ -428,11 +503,21 @@ export default function NewCampaignPage() {
 
           <div className="p-3 rounded-xl bg-white/5 border border-white/7">
             <p className="text-xs text-zinc-500 mb-1">Preview Pesan</p>
-            <p className="text-sm text-zinc-300">
-              {messageType === "template"
-                ? `{{1}} — Template: ${templateName || "pilih template"}`
-                : textBody || "Ketik pesan kamu..."}
-            </p>
+            {messageType === "template" ? (
+              <p className="text-sm text-zinc-300">
+                {selectedTemplate?.content
+                  ? selectedTemplate.content.replace(/\{\{(\d+)\}\}/g, (_, num) => {
+                      const cfg = variableConfigs[num];
+                      if (!cfg) return `{{${num}}}`;
+                      if (cfg.type === "fixed") return cfg.value || `{{${num}}}`;
+                      const labels: Record<string, string> = { full_name: "[Nama]", phone_number: "[HP]", email: "[Email]", city: "[Kota]", username: "[User]" };
+                      return `{{${labels[cfg.source || ""] || cfg.source || num}}}`;
+                    })
+                  : `Template: ${templateName || "pilih template"}`}
+              </p>
+            ) : (
+              <p className="text-sm text-zinc-300">{textBody || "Ketik pesan kamu..."}</p>
+            )}
           </div>
 
           <div className="flex justify-between">
@@ -467,7 +552,7 @@ export default function NewCampaignPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="card p-8 text-center max-w-lg mx-auto"
+          className="card p-8 text-center max-w-2xl mx-auto"
         >
           <div className="text-5xl mb-4">🎉</div>
           <h2 className="text-xl font-bold text-white">Campaign Terkirim!</h2>

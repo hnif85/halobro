@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase";
+
+const VERIFY_TOKEN = process.env.DAMCORP_WEBHOOK_VERIFY_TOKEN;
 
 function normalizePhone(phone: string): string[] {
   let p = phone.replace(/[\s\-()]/g, "");
@@ -50,12 +53,28 @@ async function getOrCreatePipeline(supabase: any, customerGuid: string) {
 }
 
 export async function GET(req: NextRequest) {
+  const mode = req.nextUrl.searchParams.get("hub.mode");
   const challenge = req.nextUrl.searchParams.get("hub.challenge");
-  if (challenge) return new NextResponse(challenge, { status: 200 });
+  const token = req.nextUrl.searchParams.get("hub.verify_token");
+
+  if (mode === "subscribe" && VERIFY_TOKEN && token === VERIFY_TOKEN) {
+    return new NextResponse(challenge || "", { status: 200 });
+  }
   return NextResponse.json({ status: "ok" });
 }
 
 export async function POST(req: NextRequest) {
+  // Verify signature if available
+  if (VERIFY_TOKEN) {
+    const rawBody = await req.clone().text();
+    const signature = req.headers.get("x-hub-signature-256") || req.headers.get("x-damcorp-signature");
+    if (signature) {
+      const expected = "sha256=" + crypto.createHmac("sha256", VERIFY_TOKEN).update(rawBody).digest("hex");
+      if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+        return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
+      }
+    }
+  }
   const payload = await req.json().catch(() => null);
   if (!payload) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
 

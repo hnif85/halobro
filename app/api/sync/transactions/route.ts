@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY!;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY!;
 const CREDIT_API = process.env.CREDIT_MANAGER_URL || "https://credit-manager.mwxmarket.ai/api/v1/transactions";
-const CREDIT_AUTH = process.env.CREDIT_MANAGER_AUTH;
-if (!CREDIT_AUTH) throw new Error("CREDIT_MANAGER_AUTH environment variable is required");
+const CREDIT_AUTH = process.env.CREDIT_MANAGER_AUTH as string;
 
 interface ApiTx {
   id: string;
@@ -71,7 +71,10 @@ async function fetchCreditTransactions(startDate: string, endDate: string): Prom
 }
 
 export async function POST(req: NextRequest) {
+  const user = requireAuth(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
+    if (!CREDIT_AUTH) throw new Error("CREDIT_MANAGER_AUTH environment variable is required");
     const body = await req.json().catch(() => ({}));
     const { startDate, endDate } = body;
 

@@ -13,6 +13,8 @@ export async function POST(req: NextRequest) {
       success: true,
       message: `Sync selesai: ${result.added} kontak baru, ${result.updated} diperbarui, ${result.total} total dari Halosis.`,
       ...result,
+      pagesProcessed: result.pagesProcessed,
+      totalPages: result.totalPages,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

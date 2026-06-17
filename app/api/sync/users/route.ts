@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY!;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY!;
 
 async function supabaseFetch(path: string, options: RequestInit = {}) {
   const res = await fetch(`${SUPABASE_URL}${path}`, {
@@ -20,7 +21,9 @@ async function supabaseFetch(path: string, options: RequestInit = {}) {
   return res;
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const user = requireAuth(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const results: Array<{ id: string | undefined; status: "success" | "error"; error?: string }> = [];
     let successCount = 0;

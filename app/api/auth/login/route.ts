@@ -3,9 +3,38 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { createAdminClient } from "@/lib/supabase";
 
-const SECRET = process.env.JWT_SECRET;
+const SECRET = process.env.JWT_SECRET as string;
 if (!SECRET) throw new Error("JWT_SECRET environment variable is required");
 const COOKIE_NAME = "halobro_session";
+
+// Simple in-memory rate limiter: 5 attempts / 15 min per IP + per email
+const rateMap = new Map<string, { count: number; resetAt: number }>();
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000;
+
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const entry = rateMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateMap.set(key, { count: 1, resetAt: now + WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= MAX_ATTEMPTS) return false;
+  entry.count++;
+  return true;
+}
+
+function resetRateLimit(key: string): void {
+  rateMap.delete(key);
+}
+
+// Periodic cleanup of expired entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of rateMap) {
+    if (now > v.resetAt) rateMap.delete(k);
+  }
+}, 60000);
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,6 +42,12 @@ export async function POST(req: NextRequest) {
 
     if (!email || !password) {
       return NextResponse.json({ error: "Email dan password wajib diisi" }, { status: 400 });
+    }
+
+    // Rate limit by IP and email
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    if (!checkRateLimit(ip) || !checkRateLimit(`email:${email}`)) {
+      return NextResponse.json({ error: "Terlalu banyak percobaan. Coba lagi nanti." }, { status: 429 });
     }
 
     const supabase = await createAdminClient();
@@ -42,15 +77,17 @@ export async function POST(req: NextRequest) {
       { expiresIn: "7d" }
     );
 
+    resetRateLimit(ip);
+    resetRateLimit(`email:${email}`);
+
     const response = NextResponse.json({
       success: true,
       user: { id: user.id, email: user.email, name: user.name, role: user.role },
-      token,
     });
 
     response.cookies.set(COOKIE_NAME, token, {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
       path: "/",

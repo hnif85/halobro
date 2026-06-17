@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ChevronDown,
   LogOut,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,17 @@ const navItems: NavItem[] = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/customers", icon: Users, label: "Customers" },
   { href: "/campaigns", icon: Megaphone, label: "Campaigns" },
+  {
+    label: "Reports",
+    icon: BarChart3,
+    children: [
+      { href: "/reports/executive", label: "Executive" },
+      { href: "/reports/campaigns", label: "Campaigns" },
+      { href: "/reports/customers", label: "Customers" },
+      { href: "/reports/events", label: "Events" },
+      { href: "/reports/whatsapp", label: "WhatsApp" },
+    ],
+  },
   { href: "/events", icon: GraduationCap, label: "Events" },
   {
     label: "Benar Foundation",

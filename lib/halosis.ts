@@ -170,7 +170,10 @@ export async function getBalance(): Promise<HalosisBalance> {
   return res.json();
 }
 
-export async function syncAllContacts(): Promise<{ added: number; updated: number; total: number }> {
+export async function syncAllContacts(): Promise<{
+  added: number; updated: number; total: number;
+  pagesProcessed: number; totalPages: number;
+}> {
   const { createAdminClient } = await import("@/lib/supabase");
   const supabase = await createAdminClient();
 
@@ -178,11 +181,13 @@ export async function syncAllContacts(): Promise<{ added: number; updated: numbe
   let added = 0;
   let updated = 0;
   let total = 0;
+  let totalPages = 1;
 
   while (true) {
     const response = await getContacts(page, 100);
     const contacts = response.data.data;
     total = response.data.total;
+    totalPages = response.data.last_page;
 
     if (!contacts || contacts.length === 0) break;
 
@@ -237,7 +242,7 @@ export async function syncAllContacts(): Promise<{ added: number; updated: numbe
     page++;
   }
 
-  return { added, updated, total };
+  return { added, updated, total, pagesProcessed: page, totalPages };
 }
 
 

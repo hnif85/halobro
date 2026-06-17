@@ -27,7 +27,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   let customersQuery = supabase
     .from("cms_customers")
-    .select("guid, full_name, phone_number, email")
+    .select("guid, full_name, phone_number, email, city, username")
     .not("phone_number", "is", null)
     .neq("phone_number", "");
 
@@ -63,9 +63,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let processed = 0;
   let failed = 0;
 
+  const customerMap: Record<string, Record<string, unknown>> = {};
+  for (const c of customers || []) {
+    customerMap[c.guid as string] = c as Record<string, unknown>;
+  }
+
   for (let i = 0; i < batch.length; i++) {
     const recipient = batch[i] as Record<string,unknown>;
     const phone = normalizePhone(recipient.phone_number as string);
+    const customer = customerMap[recipient.customer_guid as string];
 
     try {
       let result;
@@ -76,7 +82,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             const parsed = typeof campaign.template_components_json === "string"
               ? JSON.parse(campaign.template_components_json)
               : campaign.template_components_json;
-            components = parsed.body || [];
+            const keys = Object.keys(parsed).sort((a, b) => parseInt(a) - parseInt(b));
+            const params = keys.map((k) => {
+              const cfg = parsed[k] as { type: string; source?: string; value?: string };
+              if (cfg.type === "dynamic" && cfg.source) {
+                return { type: "text" as const, text: String((customer || {})[cfg.source] || "") };
+              }
+              return { type: "text" as const, text: cfg.value || "" };
+            });
+            if (params.length > 0) {
+              components = [{ type: "body", parameters: params }];
+            }
           } catch {}
         }
         result = await sendTemplateMessage({

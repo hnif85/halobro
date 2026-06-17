@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deck Bandung Barat — Juragan UMKM</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --navy: #0a1628;
+  --navy-light: #132240;
+  --gold: #f0b429;
+  --gold-light: #fcd34d;
+  --emerald: #34d399;
+  --rose: #fb7185;
+  --sky: #38bdf8;
+  --violet: #a78bfa;
+  --amber: #fbbf24;
+  --lime: #84cc16;
+  --surface: #0f1d35;
+  --surface-light: #1a2d4a;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background: var(--navy);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Slide layout */
+.slide {
+  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+.slide-number {
+  position: absolute;
+  bottom: 24px;
+  right: 48px;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+.slide-divider {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+.slide-divider hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.15;
+}
+
+/* Typography */
+h1 { font-family: 'DM Serif Display', serif; font-size: 64px; line-height: 1.1; font-weight: 400; }
+h1 .highlight { color: var(--gold); }
+h2 { font-family: 'DM Serif Display', serif; font-size: 36px; font-weight: 400; line-height: 1.2; }
+h2 .highlight { color: var(--gold); }
+h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 4px; font-weight: 600; color: var(--text-dim); margin-bottom: 12px; }
+h4 { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.subtitle { font-size: 18px; color: var(--text-muted); max-width: 600px; }
+
+/* Grid */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+.grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 20px; }
+
+/* Cards */
+.card {
+  background: var(--surface-light);
+  border-radius: var(--radius);
+  padding: 28px;
+  border: 1px solid rgba(255,255,255,0.04);
+  transition: transform .2s, box-shadow .2s;
+}
+.card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+.card .number {
+  font-family: 'DM Serif Display', serif;
+  font-size: 40px;
+  font-weight: 400;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.card .label { font-size: 13px; color: var(--text-muted); font-weight: 500; letter-spacing: 0.3px; }
+
+/* Stats row */
+.stat-row { display: flex; gap: 20px; flex-wrap: wrap; }
+.stat-item { flex: 1; min-width: 140px; }
+.stat-number { font-family: 'DM Serif Display', serif; font-size: 32px; font-weight: 400; line-height: 1; }
+.stat-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px; }
+
+/* Bars */
+.bar-group { margin-bottom: 14px; }
+.bar-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+.bar-label span:last-child { color: var(--text-dim); }
+.bar-track { height: 8px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 99px; transition: width 1s ease; }
+
+/* Tags */
+.tag { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin: 2px; }
+.tag-gold { background: rgba(240,180,41,0.15); color: var(--gold); }
+.tag-emerald { background: rgba(52,211,153,0.15); color: var(--emerald); }
+.tag-rose { background: rgba(251,113,133,0.15); color: var(--rose); }
+.tag-sky { background: rgba(56,189,248,0.15); color: var(--sky); }
+.tag-violet { background: rgba(167,139,250,0.15); color: var(--violet); }
+.tag-lime { background: rgba(132,204,22,0.15); color: var(--lime); }
+.tag-amber { background: rgba(251,191,36,0.15); color: var(--amber); }
+.tag-dim { background: rgba(148,163,184,0.1); color: var(--text-dim); }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 10px 12px; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* Pulse dot */
+.pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.pulse-green { background: var(--emerald); box-shadow: 0 0 8px rgba(52,211,153,0.5); }
+.pulse-amber { background: var(--amber); box-shadow: 0 0 8px rgba(251,191,36,0.5); }
+.pulse-rose { background: var(--rose); }
+
+/* WA Timeline */
+.template-block { background: var(--surface-light); border-radius: var(--radius-sm); padding: 20px; margin-bottom: 16px; border-left: 3px solid var(--gold); }
+.template-block h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.template-block .meta { font-size: 12px; color: var(--text-dim); margin-bottom: 10px; }
+.status-bar { display: flex; gap: 12px; font-size: 12px; }
+.status-bar .s { padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.04); }
+
+/* Cover */
+.cover { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; position: relative; }
+.cover-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 20px; border-radius: 99px;
+  background: rgba(240,180,41,0.1);
+  border: 1px solid rgba(240,180,41,0.2);
+  font-size: 13px; font-weight: 500; color: var(--gold);
+  margin-bottom: 32px;
+  width: fit-content;
+}
+.cover-date { font-size: 16px; color: var(--text-muted); margin-top: 20px; }
+.cover-stats { display: flex; gap: 48px; margin-top: 48px; }
+.cover-stats .cs-number { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--gold); }
+.cover-stats .cs-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2px; }
+
+/* Legend */
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .slide { padding: 40px 24px; }
+  h1 { font-size: 40px; }
+  h2 { font-size: 28px; }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .cover-stats { flex-wrap: wrap; gap: 24px; }
+  .stat-row { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== SLIDE 1: COVER ===== -->
+<div class="slide cover">
+  <div class="cover-badge">
+    <span>●</span> Event Report
+  </div>
+  <h1>Juragan UMKM<br><span class="highlight">Kab. Bandung Barat</span></h1>
+  <p class="cover-date">21 Mei 2026 — Ngamprah, Bandung Barat</p>
+  <div class="cover-stats">
+    <div><div class="cs-number">90</div><div class="cs-label">Peserta</div></div>
+    <div><div class="cs-number">14.200</div><div class="cs-label">Credit Diberikan</div></div>
+    <div><div class="cs-number">894</div><div class="cs-label">Credit Dipakai</div></div>
+    <div><div class="cs-number">214</div><div class="cs-label">WA Blast</div></div>
+  </div>
+  <div class="slide-number">01 / Overview</div>
+</div>
+
+<div class="slide-divider"><hr></div>
+
+<!-- ===== SLIDE 2: PARTISIPAN ===== -->
+<div class="slide">
+  <h3>Demografi Peserta</h3>
+  <h2>Profil <span class="highlight">Peserta</span></h2>
+  <p class="subtitle" style="margin-bottom:36px">90 peserta terdaftar dalam program Juragan UMKM Kab. Bandung Barat.</p>
+
+  <div class="grid-4" style="margin-bottom:36px">
+    <div class="card">
+      <div class="number" style="color:var(--gold)">80</div>
+      <div class="label">Terdaftar Training</div>
+      <div class="tag tag-gold" style="margin-top:6px">88,9%</div>
+    </div>
+    <div class="card">
+      <div class="number" style="color:var(--rose)">10</div>
+      <div class="label">Tidak Terdaftar</div>
+      <div class="tag tag-rose" style="margin-top:6px">11,1%</div>
+    </div>
+    <div class="card">
+      <div class="number" style="color:var(--emerald)">4</div>
+      <div class="label">Punya NIB</div>
+      <div class="tag tag-emerald" style="margin-top:6px">4,4%</div>
+    </div>
+    <div class="card">
+      <div class="number" style="color:var(--sky)">86</div>
+      <div class="label">Belum Punya NIB</div>
+      <div class="tag tag-sky" style="margin-top:6px">95,6%</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h4 style="font-size:13px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px">Status Kehadiran</h4>
+      <div style="display:flex;align-items:center;gap:16px;height:40px">
+        <div style="flex:1;height:100%;background:var(--surface);border-radius:6px;display:flex;overflow:hidden">
+          <div style="width:0%;background:var(--emerald);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--navy)">0% Hadir</div>
+          <div style="width:100%;background:var(--rose);opacity:0.3;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500">89 Tidak Hadir</div>
+        </div>
+      </div>
+      <div class="legend" style="margin-top:12px">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--emerald)"></div>Hadir: 0</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--rose);opacity:0.3"></div>Tidak Hadir: 89</div>
+      </div>
+    </div>
+    <div class="card">
+      <h4 style="font-size:13px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px">Aktivitas Pemakaian</h4>
+      <div style="display:flex;align-items:center;gap:16px;height:40px">
+        <div style="flex:1;height:100%;background:var(--surface);border-radius:6px;display:flex;overflow:hidden">
+          <div style="width:61%;background:var(--emerald);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--navy)">55 Aktif</div>
+          <div style="width:39%;background:var(--text-dim);opacity:0.2;display:flex;align-items:center;justify-content:center;font-size:12px">35 Tidak Aktif</div>
+        </div>
+      </div>
+      <div class="legend" style="margin-top:12px">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--emerald)"></div>Memakai credit: 55 (61%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--text-dim);opacity:0.3"></div>Credit 0: 35 (39%)</div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">02 / Partisipan</div>
+</div>
+
+<div class="slide-divider"><hr></div>
+
+<!-- ===== SLIDE 3: CREDIT ===== -->
+<div class="slide">
+  <h3>Distribusi Credit</h3>
+  <h2>Credit &amp; <span class="highlight">Usage</span></h2>
+  <p class="subtitle" style="margin-bottom:36px">Total 14.200 credit didistribusikan. Rata-rata 157,8 credit per peserta.</p>
+
+  <div class="grid-3" style="margin-bottom:36px">
+    <div class="card">
+      <div class="number" style="color:var(--emerald)">14.200</div>
+      <div class="label">Total Credit Diberikan</div>
+    </div>
+    <div class="card">
+      <div class="number" style="color:var(--gold)">894</div>
+      <div class="label">Total Credit Terpakai</div>
+    </div>
+    <div class="card">
+      <div class="number" style="color:var(--sky)">6,3%</div>
+      <div class="label">Usage Rate</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h4 style="font-size:13px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px">Distribusi Credit Awal</h4>
+      <div class="bar-group">
+        <div class="bar-label"><span>150 credit</span><span>84 peserta (93,3%)</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:93.3%;background:var(--gold)"></div></div>
+      </div>
+      <div class="bar-group">
+        <div class="bar-label"><span>200 credit</span><span>2 peserta (2,2%)</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:2.2%;background:var(--violet)"></div></div>
+      </div>
+      <div class="bar-group">
+        <div class="bar-label"><span>300 credit</span><span>4 peserta (4,4%)</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:4.4%;background:var(--rose)"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h4 style="font-size:13px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px">Rentang Pemakaian (Debit)</h4>
+      <div class="bar-group">
+        <div class="bar-label"><span>0 (tidak pakai)</span><span>35 peserta</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:38.9%;background:var(--text-dim);opacity:0.3"></div></div>
+      </div>
+      <div class="bar-group">
+        <div class="bar-label"><span>1–10 debit</span><span>18 peserta</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:20%;background:var(--sky)"></div></div>
+      </div>
+      <div class="bar-group">
+        <div class="bar-label"><span>11–20 debit</span><span>17 peserta</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:18.9%;background:var(--amber)"></div></div>
+      </div>
+      <div class="bar-group">
+        <div class="bar-label"><span>21–30 debit</span><span>15 peserta</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:16.7%;background:var(--violet)"></div></div>
+      </div>
+      <div class="bar-group">
+        <div class="bar-label"><span>31–40 debit</span><span>5 peserta</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:5.6%;background:var(--emerald)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:20px;background:var(--surface-light);border-color:rgba(240,180,41,0.1)">
+    <div style="display:flex;gap:16px;align-items:flex-start">
+      <div style="font-size:24px;line-height:1">&#9432;</div>
+      <div>
+        <strong style="color:var(--gold)">Insight:</strong> Seluruh pemakaian credit (894 debit) terjadi <strong>di dalam sesi training</strong>. Tidak ada pemakaian di luar training — menunjukkan peserta belum mengadopsi aplikasi secara mandiri.
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">03 / Credit &amp; Usage</div>
+</div>
+
+<div class="slide-divider"><hr></div>
+
+<!-- ===== SLIDE 4: APPS ===== -->
+<div class="slide">
+  <h3>Aplikasi</h3>
+  <h2>Adopsi <span class="highlight">Aplikasi</span></h2>
+  <p class="subtitle" style="margin-bottom:36px">3 aplikasi Whiz digunakan selama event Bandung Barat.</p>
+
+  <div class="grid-3" style="margin-bottom:32px">
+    <div class="card" style="border-top:3px solid var(--amber)">
+      <div class="number" style="color:var(--amber);font-size:48px">55</div>
+      <div class="label">CreateWhiz</div>
+      <div style="margin-top:8px">
+        <span class="tag tag-amber">Paling populer</span>
+        <span class="tag tag-dim">61% peserta</span>
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--violet)">
+      <div class="number" style="color:var(--violet);font-size:48px">14</div>
+      <div class="label">SmartWhiz</div>
+      <div style="margin-top:8px">
+        <span class="tag tag-violet">Kombinasi</span>
+        <span class="tag tag-dim">16% peserta</span>
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--lime)">
+      <div class="number" style="color:var(--lime);font-size:48px">3</div>
+      <div class="label">FinanceWhiz</div>
+      <div style="margin-top:8px">
+        <span class="tag tag-lime">Baru mulai</span>
+        <span class="tag tag-dim">3% peserta</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h4 style="font-size:13px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">Kombinasi Aplikasi</h4>
+      <div class="bar-group">
+        <div class="bar-label"><span>CreateWhiz saja</span><span>41 peserta</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:74.5%;background:var(--amber)"></div></div>
+      </div>
+      <div class="bar-group">
+        <div class="bar-label"><span>CreateWhiz + SmartWhiz</span><span>11 peserta</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:20%;background:linear-gradient(90deg,var(--amber),var(--violet))"></div></div>
+      </div>
+      <div class="bar-group">
+        <div class="bar-label"><span>CreateWhiz + FinanceWhiz</span><span>3 peserta</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:5.5%;background:linear-gradient(90deg,var(--amber),var(--lime))"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h4 style="font-size:13px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">Top 5 Pemakai Credit Terbanyak</h4>
+      <table>
+        <tr><th>Nama</th><th>Debit</th><th>Apps</th></tr>
+        <tr><td>-</td><td style="color:var(--gold);font-weight:600">38</td><td><span class="tag tag-amber">CW</span></td></tr>
+        <tr><td>MANG UDJU</td><td style="color:var(--gold);font-weight:600">36</td><td><span class="tag tag-amber">CW</span></td></tr>
+        <tr><td>-</td><td style="color:var(--gold);font-weight:600">35</td><td><span class="tag tag-amber">CW</span> <span class="tag tag-violet">SW</span></td></tr>
+        <tr><td>-</td><td style="color:var(--gold);font-weight:600">35</td><td><span class="tag tag-amber">CW</span></td></tr>
+        <tr><td>-</td><td style="color:var(--gold);font-weight:600">33</td><td><span class="tag tag-amber">CW</span> <span class="tag tag-violet">SW</span></td></tr>
+      </table>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-dim)">CW = CreateWhiz · SW = SmartWhiz · FW = FinanceWhiz</div>
+    </div>
+  </div>
+  <div class="slide-number">04 / Aplikasi</div>
+</div>
+
+<div class="slide-divider"><hr></div>
+
+<!-- ===== SLIDE 5: TRANSACTIONS ===== -->
+<div class="slide">
+  <h3>Penjualan</h3>
+  <h2>Transaksi &amp; <span class="highlight">Revenue</span></h2>
+  <p class="subtitle" style="margin-bottom:36px">Status transaksi peserta Bandung Barat di sistem.</p>
+
+  <div class="grid-3" style="margin-bottom:32px">
+    <div class="card" style="border-top:3px solid var(--rose)">
+      <div class="number" style="color:var(--rose);font-size:48px">0</div>
+      <div class="label">Transaksi Berhasil (Paid)</div>
+      <div style="margin-top:6px"><span class="tag tag-rose">Belum ada pembelian</span></div>
+    </div>
+    <div class="card">
+      <div class="number" style="color:var(--text-dim);font-size:48px">0</div>
+      <div class="label">Revenue (Rp)</div>
+      <div style="margin-top:6px"><span class="tag tag-dim">Rp 0</span></div>
+    </div>
+    <div class="card">
+      <div class="number" style="color:var(--sky);font-size:48px">440</div>
+      <div class="label">Total Transaksi Credit</div>
+      <div style="margin-top:6px"><span class="tag tag-sky">Rata-rata 4,9/user</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="background:var(--surface-light);border-color:rgba(240,180,41,0.1)">
+    <div style="display:flex;gap:16px;align-items:flex-start">
+      <div style="font-size:24px;line-height:1;color:var(--gold)">&#9888;</div>
+      <div>
+        <strong style="color:var(--gold)">Catatan:</strong> Belum ada transaksi penjualan (paid) dari peserta Bandung Barat. Credit usage terjadi sebatas kredit gratis yang diberikan saat training. Tidak ada <em>upsell</em> atau konversi ke paket berbayar yang tercatat di sistem.
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px">
+    <h4 style="font-size:13px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">Distribusi Frekuensi Transaksi Credit</h4>
+    <div class="bar-group">
+      <div class="bar-label"><span>5+ transaksi</span><span>55 peserta (61%)</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:61%;background:var(--emerald)"></div></div>
+    </div>
+    <div class="bar-group">
+      <div class="bar-label"><span>3–4 transaksi</span><span>13 peserta (14%)</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:14%;background:var(--amber)"></div></div>
+    </div>
+    <div class="bar-group">
+      <div class="bar-label"><span>0 transaksi</span><span>21 peserta (23%)</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:23%;background:var(--rose);opacity:0.4"></div></div>
+    </div>
+  </div>
+
+  <div class="slide-number">05 / Transaksi</div>
+</div>
+
+<div class="slide-divider"><hr></div>
+
+<!-- ===== SLIDE 6: WA BLAST ===== -->
+<div class="slide">
+  <h3>WA Blast</h3>
+  <h2>Kampanye <span class="highlight">WhatsApp</span></h2>
+  <p class="subtitle" style="margin-bottom:36px">214 pesan WA terkirim ke 88 nomor peserta melalui 5 template.</p>
+
+  <div class="grid-4" style="margin-bottom:32px">
+    <div class="card">
+      <div class="number" style="color:var(--gold);font-size:36px">214</div>
+      <div class="label">Total Pesan</div>
+    </div>
+    <div class="card">
+      <div class="number" style="color:var(--emerald);font-size:36px">88</div>
+      <div class="label">Penerima Unik</div>
+    </div>
+    <div class="card">
+      <div class="number" style="color:var(--sky);font-size:36px">5</div>
+      <div class="label">Template</div>
+    </div>
+    <div class="card">
+      <div class="number" style="color:var(--violet);font-size:36px">20</div>
+      <div class="label">Pesan Dibaca</div>
+    </div>
+  </div>
+
+  <div class="template-block">
+    <h4>1. thankyoumessage_bandungbarat &#8212; 70 pesan</h4>
+    <div class="meta">29 Mei 2026 · 70 penerima</div>
+    <div class="status-bar">
+      <span class="s" style="color:var(--emerald)">&#10003; 64 delivered</span>
+      <span class="s" style="color:var(--sky)">&#9679; 5 read</span>
+      <span class="s" style="color:var(--amber)">&#9888; 1 need_fu</span>
+    </div>
+  </div>
+
+  <div class="template-block" style="border-left-color:var(--violet)">
+    <h4>2. followup_financewhiz &#8212; 71 pesan</h4>
+    <div class="meta">6 Juni 2026 · 71 penerima</div>
+    <div class="status-bar">
+      <span class="s" style="color:var(--emerald)">&#10003; 66 delivered</span>
+      <span class="s" style="color:var(--sky)">&#9679; 5 read</span>
+    </div>
+  </div>
+
+  <div class="template-block" style="border-left-color:var(--sky)">
+    <h4>3. survey_saldogopay50rb &#8212; 52 pesan</h4>
+    <div class="meta">4 Juni 2026 · 52 penerima</div>
+    <div class="status-bar">
+      <span class="s" style="color:var(--emerald)">&#10003; 49 delivered</span>
+      <span class="s" style="color:var(--sky)">&#9679; 3 read</span>
+    </div>
+  </div>
+
+  <div class="template-block" style="border-left-color:var(--amber)">
+    <h4>4. edukasiprodukdanpromo10rb &#8212; 4 pesan</h4>
+    <div class="meta">31 Mei 2026 · 4 penerima</div>
+    <div class="status-bar">
+      <span class="s" style="color:var(--emerald)">&#10003; 3 delivered</span>
+      <span class="s" style="color:var(--sky)">&#9679; 1 read</span>
+    </div>
+  </div>
+
+  <div class="template-block" style="border-left-color:var(--rose)">
+    <h4>5. (tanpa template) &#8212; 17 pesan</h4>
+    <div class="meta">29 Mei - 6 Juni 2026 · 7 penerima</div>
+    <div class="status-bar">
+      <span class="s" style="color:var(--sky)">&#9679; 11 read</span>
+      <span class="s" style="color:var(--emerald)">&#10003; 4 delivered</span>
+      <span class="s" style="color:var(--amber)">&#9888; 2 need_fu</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:20px;background:var(--surface-light);border-color:rgba(56,189,248,0.1)">
+    <div style="display:flex;gap:16px;align-items:flex-start">
+      <div style="font-size:24px;line-height:1;color:var(--sky)">&#9432;</div>
+      <div>
+        <strong style="color:var(--sky)">Timeline Kampanye:</strong> 29 Mei (thank you) &#8594; 31 Mei (edukasi) &#8594; 4 Juni (survey) &#8594; 6 Juni (follow-up FinanceWhiz). <strong>9 peserta</strong> tidak menerima WA blast sama sekali karena tidak ada nomor telepon valid.
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">06 / WA Blast</div>
+</div>
+
+<div class="slide-divider"><hr></div>
+
+<!-- ===== SLIDE 7: EXPORT ===== -->
+<div class="slide">
+  <h3>Export &amp; Data</h3>
+  <h2>Riwayat <span class="highlight">Export</span></h2>
+  <p class="subtitle" style="margin-bottom:36px">Data peserta Bandung Barat telah diexport dalam beberapa format.</p>
+
+  <div class="grid-3" style="margin-bottom:32px">
+    <div class="card" style="border-top:3px solid var(--emerald)">
+      <div class="number" style="color:var(--emerald);font-size:28px">3</div>
+      <div class="label">File Export</div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-muted)">
+        <div>&#128196; pesertaKabBandungBarat.csv</div>
+        <div>&#128196; laporan-analisis-bandung-barat.csv</div>
+        <div>&#128196; laporan-credit-peserta.csv</div>
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--sky)">
+      <div class="number" style="color:var(--sky);font-size:28px">2</div>
+      <div class="label">Versi Laporan Credit</div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-muted)">
+        <div>&#128196; laporan-credit-peserta.csv (v1)</div>
+        <div>&#128196; laporan-credit-peserta-v2.csv (v2 + agent)</div>
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--gold)">
+      <div class="number" style="color:var(--gold);font-size:28px">21</div>
+      <div class="label">Mei 2026</div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-muted)">
+        <div>&#128197; Event training dilaksanakan</div>
+        <div>&#128197; Credit & analysis diexport</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background:var(--surface-light)">
+    <h4 style="font-size:13px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px">Detail File Export</h4>
+    <table>
+      <tr><th style="width:35%">Nama File</th><th style="width:20%">Tipe</th><th style="width:25%">Isi</th><th style="width:20%">Jumlah Record</th></tr>
+      <tr>
+        <td style="font-weight:500">pesertaKabBandungBarat.csv</td>
+        <td><span class="tag tag-emerald">Email list</span></td>
+        <td style="color:var(--text-muted)">Email peserta</td>
+        <td>100</td>
+      </tr>
+      <tr>
+        <td style="font-weight:500">laporan-analisis-bandung-barat.csv</td>
+        <td><span class="tag tag-sky">Analisis</span></td>
+        <td style="color:var(--text-muted)">Nama, Email, Training, NIB, Credit/Debit, Apps</td>
+        <td>90</td>
+      </tr>
+      <tr>
+        <td style="font-weight:500">laporan-credit-peserta.csv</td>
+        <td><span class="tag tag-violet">Credit</span></td>
+        <td style="color:var(--text-muted)">Detail transaksi &amp; usage per peserta</td>
+        <td>89</td>
+      </tr>
+      <tr>
+        <td style="font-weight:500">laporan-credit-peserta-v2.csv</td>
+        <td><span class="tag tag-amber">Credit v2</span></td>
+        <td style="color:var(--text-muted)">Detail + info Agent</td>
+        <td>89</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="slide-number">07 / Export</div>
+</div>
+
+<div class="slide-divider"><hr></div>
+
+<!-- ===== SLIDE 8: INSIGHTS ===== -->
+<div class="slide">
+  <h3>Kesimpulan</h3>
+  <h2>Insight &amp; <span class="highlight">Rekomendasi</span></h2>
+  <p class="subtitle" style="margin-bottom:40px">Temuan kunci dan langkah selanjutnya untuk Bandung Barat.</p>
+
+  <div class="grid-2">
+    <div class="card" style="border-left:3px solid var(--emerald)">
+      <h4 style="color:var(--emerald);text-transform:uppercase;letter-spacing:1px;font-size:12px">&#9650; Positif</h4>
+      <ul style="list-style:none;margin-top:10px;font-size:14px;color:var(--text-muted)">
+        <li style="margin-bottom:10px">&#10003; <strong style="color:var(--text)">61% peserta aktif</strong> memakai credit (55 dari 90)</li>
+        <li style="margin-bottom:10px">&#10003; Adopsi CreateWhiz cukup baik (55 peserta)</li>
+        <li style="margin-bottom:10px">&#10003; 100% pemakaian credit terjadi <strong>pada hari yang sama</strong> dengan distribusi</li>
+        <li style="margin-bottom:10px">&#10003; WA blast <em>delivery rate</em> tinggi (93% terkirim)</li>
+      </ul>
+    </div>
+    <div class="card" style="border-left:3px solid var(--rose)">
+      <h4 style="color:var(--rose);text-transform:uppercase;letter-spacing:1px;font-size:12px">&#9660; Perlu Perhatian</h4>
+      <ul style="list-style:none;margin-top:10px;font-size:14px;color:var(--text-muted)">
+        <li style="margin-bottom:10px">&#10007; <strong style="color:var(--text)">0% penjualan</strong> — belum ada konversi ke paket berbayar</li>
+        <li style="margin-bottom:10px">&#10007; 39% peserta tidak pernah memakai credit yang diberikan</li>
+        <li style="margin-bottom:10px">&#10007; 95,6% belum punya NIB — potensi LegalWhiz</li>
+        <li style="margin-bottom:10px">&#10007; FinanceWhiz hanya dipakai 3 orang</li>
+        <li style="margin-bottom:10px">&#10007; 9 peserta tidak terjangkau WA blast (no telp tidak valid)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:24px;background:linear-gradient(135deg,rgba(240,180,41,0.08),rgba(52,211,153,0.05));border:1px solid rgba(240,180,41,0.15)">
+    <h4 style="color:var(--gold);text-transform:uppercase;letter-spacing:1px;font-size:12px">&#9654; Rekomendasi</h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;font-size:14px;color:var(--text-muted)">
+      <div>
+        <span class="tag tag-gold" style="margin-bottom:6px">1</span>
+        <div style="margin-top:4px"><strong>Aktivasi ulang</strong> 35 peserta tidak aktif via program <em>re-engagement</em> khusus</div>
+      </div>
+      <div>
+        <span class="tag tag-gold" style="margin-bottom:6px">2</span>
+        <div style="margin-top:4px"><strong>Upsell FinanceWhiz</strong> ke 55 peserta aktif CreateWhiz — bundling paket</div>
+      </div>
+      <div>
+        <span class="tag tag-gold" style="margin-bottom:6px">3</span>
+        <div style="margin-top:4px"><strong>Dorong legalitas</strong> NIB ke 86 peserta — peluang besar untuk LegalWhiz</div>
+      </div>
+      <div>
+        <span class="tag tag-gold" style="margin-bottom:6px">4</span>
+        <div style="margin-top:4px"><strong>Update nomor WA</strong> 9 peserta yang tidak terjangkau blast</div>
+      </div>
+      <div style="grid-column:1/3">
+        <span class="tag tag-gold" style="margin-bottom:6px">5</span>
+        <div style="margin-top:4px"><strong>Follow-up intensif</strong> ke top 5 pengguna (debit 30+) — calon power user potensial</div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">08 / Insight</div>
+</div>
+
+<div class="slide-divider"><hr></div>
+
+<!-- ===== SLIDE 9: CLOSING ===== -->
+<div class="slide" style="align-items:center;text-align:center">
+  <div style="font-size:14px;color:var(--text-dim);letter-spacing:4px;text-transform:uppercase;margin-bottom:16px">Laporan Selesai</div>
+  <h2 style="font-size:48px">Bandung Barat <span class="highlight">#SiapDigital</span></h2>
+  <p style="color:var(--text-muted);margin-top:16px;max-width:500px">
+    Dari 90 peserta, 55 sudah mulai menggunakan aplikasi.<br>
+    Langkah selanjutnya: konversi pengguna aktif menjadi <em>paying customers</em>.
+  </p>
+  <div style="margin-top:40px;display:flex;gap:16px;justify-content:center">
+    <span class="tag tag-gold">CreateWhiz</span>
+    <span class="tag tag-violet">SmartWhiz</span>
+    <span class="tag tag-lime">FinanceWhiz</span>
+  </div>
+  <div style="margin-top:60px;font-size:12px;color:var(--text-dim)">
+    Generated from CRM data &middot; Juni 2026
+  </div>
+  <div class="slide-number">09 / Selesai</div>
+</div>
+
+</body>
+</html>

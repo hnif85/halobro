@@ -13,7 +13,7 @@ export default function SettingsPage() {
         <div className="space-y-3 text-sm">
           <div className="flex items-center justify-between py-2 border-b border-white/5">
             <span className="text-zinc-400">Username</span>
-            <span className="text-white font-mono">trial14_91333</span>
+            <span className="text-white font-mono">••••••••</span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-white/5">
             <span className="text-zinc-400">Password</span>
@@ -21,7 +21,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center justify-between py-2 border-b border-white/5">
             <span className="text-zinc-400">Test Phone</span>
-            <span className="text-white font-mono">6281119591333</span>
+            <span className="text-white font-mono">••••••••</span>
           </div>
         </div>
         <p className="text-xs text-zinc-600">Kredensial Damcorp dikelola melalui environment variables.</p>
@@ -32,7 +32,7 @@ export default function SettingsPage() {
         <div className="space-y-3 text-sm">
           <div className="flex items-center justify-between py-2 border-b border-white/5">
             <span className="text-zinc-400">Verify Token</span>
-            <span className="text-white font-mono">trial14_helpdesk_webhook_token</span>
+            <span className="text-white font-mono">••••••••</span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-white/5">
             <span className="text-zinc-400">Endpoint</span>

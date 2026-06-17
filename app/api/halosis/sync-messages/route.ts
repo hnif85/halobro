@@ -54,10 +54,30 @@ export async function POST(req: NextRequest) {
       page++;
     }
 
+    // Mark as read for recipients who replied (they appear as from_phone)
+    const { data: repliers } = await supabase
+      .from("halosis_messages")
+      .select("from_phone")
+      .not("from_phone", "is", null);
+    const replyPhones = [...new Set((repliers || []).map((r: any) => r.from_phone).filter(Boolean))] as string[];
+    if (replyPhones.length > 0) {
+      // chunk to avoid overly long IN clauses
+      const chunkSize = 100;
+      for (let i = 0; i < replyPhones.length; i += chunkSize) {
+        const chunk = replyPhones.slice(i, i + chunkSize);
+        await supabase
+          .from("halosis_messages")
+          .update({ status: "read" })
+          .in("to_phone", chunk)
+          .neq("status", "failed");
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: `Sync selesai: ${totalFetched} pesan dari Halosis (${start} - ${end}).`,
       totalFetched,
+      pagesProcessed: page,
       period: { start, end },
     });
   } catch (error) {
@@ -73,6 +93,8 @@ function mapStatus(halosisStatus: string): string {
     SENT: "sent",
     FAILED: "failed",
     READ: "read",
+    NEED_FU: "delivered",
+    AUTO_REPLY: "delivered",
   };
   return map[halosisStatus] || halosisStatus.toLowerCase();
 }

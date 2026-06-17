@@ -29,7 +29,7 @@ export async function GET(
     const totalPages = Math.ceil(total / limit);
 
     // Fetch page
-    let filter = `template_name=eq.${encodeURIComponent(templateName)}&select=to_phone,status,sent_at&order=sent_at.desc`;
+    let filter = `template_name=eq.${encodeURIComponent(templateName)}&select=to_phone,status,sent_at,raw_json&order=sent_at.desc`;
     if (search) filter += `&to_phone=ilike.%${encodeURIComponent(search)}%`;
     const allRows: any[] = await sbGet(`halosis_messages?${filter}`);
     const pageRows = allRows.slice(from, from + limit);
@@ -51,15 +51,29 @@ export async function GET(
       }
     }
 
+    // Check which recipients have replied (sent a message back)
+    const replyPhones = new Set<string>();
+    if (phones.length > 0) {
+      const phoneIn = phones.map((p) => encodeURIComponent(p)).join(",");
+      const replyRows: any[] = await sbGet(`halosis_messages?select=from_phone&from_phone=in.(${phoneIn})&limit=1000`);
+      for (const r of replyRows) {
+        if (r.from_phone) replyPhones.add(normalizePhone(r.from_phone));
+      }
+    }
+
     const data = pageRows.map((r: any) => {
       const normalized = normalizePhone(r.to_phone || "");
       const customer = phoneMap[normalized];
+      const raw = r.raw_json;
+      const messageBody = typeof raw === "string" ? (() => { try { return JSON.parse(raw).message; } catch { return ""; } })() : raw?.message || "";
       return {
         to_phone: r.to_phone || "",
         status: r.status || "",
         sent_at: r.sent_at || null,
         email: customer?.email || "",
         name: customer?.name || "",
+        message_body: messageBody,
+        has_reply: replyPhones.has(normalized),
       };
     });
 

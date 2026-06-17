@@ -1,5 +1,7 @@
+import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export default async function RootPage() {
-  redirect("/benar-foundation");
+  const session = await getSession();
+  redirect(session ? "/benar-foundation" : "/login");
 }

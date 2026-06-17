@@ -246,17 +246,17 @@ ALTER TABLE crm_campaign_recipients
 ## Environment Variables
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://udupiblnzlzjmaafvdtv.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-NEXT_PUBLIC_SUPABASE_SERVICE_KEY=eyJ...
+NEXT_PUBLIC_SUPABASE_URL=<your-supabase-url>
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<your-publishable-key>
+SUPABASE_SERVICE_KEY=<your-service-key>
 
 DAMCORP_BASIC_AUTH=
-DAMCORP_USERNAME=trial14_91333
-DAMCORP_PASSWORD=DQA_/zg5?z;...
-DAMCORP_TEST_PHONE=6281119591333
-DAMCORP_WEBHOOK_VERIFY_TOKEN=trial14_helpdesk_webhook_token
+DAMCORP_USERNAME=<your-damcorp-username>
+DAMCORP_PASSWORD=<your-damcorp-password>
+DAMCORP_TEST_PHONE=<your-test-phone>
+DAMCORP_WEBHOOK_VERIFY_TOKEN=<your-webhook-verify-token>
 
-JWT_SECRET=7f3k9mXpQ2vRwL8nYdA5sT1uE6hB0cJ4iG
+JWT_SECRET=<your-jwt-secret>
 ```
 
 ---

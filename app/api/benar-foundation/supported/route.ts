@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase";
 
 export async function GET(req: NextRequest) {
+  const user = requireAuth(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { searchParams } = new URL(req.url);
   const filter = searchParams.get("filter") || "all";
 
@@ -238,6 +241,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const user = requireAuth(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const supabase = await createAdminClient();
   const body = await req.json();
   const { guids } = body;

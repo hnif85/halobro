@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase";
 import { normalizePhone } from "@/lib/waba";
 import { sbGet, sbGetAll } from "@/lib/supabase-api";
 
 export async function GET(req: NextRequest) {
+  const user = requireAuth(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const supabase = await createAdminClient();
 
@@ -210,6 +213,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const user = requireAuth(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const supabase = await createAdminClient();
   const body = await req.json();
 
@@ -276,6 +281,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const user = requireAuth(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { searchParams } = new URL(req.url);
   const guid = searchParams.get("guid");
 

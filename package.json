@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "import:masterv2": "tsx scripts/import-masterv2.ts",
     "cleanup:events": "tsx scripts/cleanup-events.ts"
   },
@@ -14,13 +15,15 @@
     "@supabase/ssr": "^0.10.3",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
+    "csv-parse": "^6.2.1",
+    "date-fns": "^4.4.0",
     "framer-motion": "^12.38.0",
-    "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.16.0",
     "next": "16.2.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -29,7 +32,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "csv-parse": "^6.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",

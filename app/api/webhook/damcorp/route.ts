@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase";
+
+const VERIFY_TOKEN = process.env.DAMCORP_WEBHOOK_VERIFY_TOKEN;
 
 function normalizePhone(phone: string): string[] {
   let p = phone.replace(/[\s\-()]/g, "");
   if (p.endsWith("@c.us")) p = p.slice(0, -5);
-  // Return all possible formats for matching
   const variants: string[] = [];
   if (p.startsWith("+")) {
     variants.push(p, p.slice(1));
@@ -18,8 +20,29 @@ function normalizePhone(phone: string): string[] {
   return [...new Set(variants)];
 }
 
+export async function GET(req: NextRequest) {
+  const mode = req.nextUrl.searchParams.get("hub.mode");
+  const challenge = req.nextUrl.searchParams.get("hub.challenge");
+  const token = req.nextUrl.searchParams.get("hub.verify_token");
+
+  if (mode === "subscribe" && VERIFY_TOKEN && token === VERIFY_TOKEN) {
+    return new NextResponse(challenge || "", { status: 200 });
+  }
+  return NextResponse.json({ error: "Invalid verification token" }, { status: 403 });
+}
+
 export async function POST(req: NextRequest) {
-  // POST events from Damcorp — no token needed
+  // Verify signature if available
+  if (VERIFY_TOKEN) {
+    const rawBody = await req.clone().text();
+    const signature = req.headers.get("x-hub-signature-256") || req.headers.get("x-damcorp-signature");
+    if (signature) {
+      const expected = "sha256=" + crypto.createHmac("sha256", VERIFY_TOKEN).update(rawBody).digest("hex");
+      if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+        return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
+      }
+    }
+  }
   const payload = await req.json().catch(() => null);
 
   const supabase = await createAdminClient();
@@ -47,7 +70,6 @@ export async function POST(req: NextRequest) {
       const updateField: Record<string, string> = {};
       if (statusVal === "delivered") updateField.delivered_at = new Date().toISOString();
       else if (statusVal === "read") updateField.read_at = new Date().toISOString();
-      // Don't overwrite sent_at
 
       if (Object.keys(updateField).length > 0) {
         const { data: updated } = await supabase
@@ -57,7 +79,6 @@ export async function POST(req: NextRequest) {
           .select("id");
 
         if (!updated || updated.length === 0) {
-          // Also try matching by phone number from the status context
           const metadata = changes.metadata as Record<string, unknown> | undefined;
           const recipientWaId = metadata?.display_phone_number as string | undefined;
           if (recipientWaId) {
@@ -94,7 +115,6 @@ export async function POST(req: NextRequest) {
 
       const phoneVariants = normalizePhone(from);
 
-      // Try to update crm_campaign_recipients by matching any phone variant
       let updated = false;
       for (const phone of phoneVariants) {
         const { data: result } = await supabase
@@ -114,7 +134,6 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Always save to wa_messages
       const now = new Date().toISOString();
       await supabase.from("wa_messages").insert({
         pipeline_id: null, direction: "inbound",

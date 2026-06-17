@@ -20,6 +20,10 @@ import {
   ChevronRight,
   ChevronDown,
   Calendar,
+  BarChart3,
+  Loader2,
+  X,
+  Reply,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TableRowSkeleton } from "@/components/ui/skeleton";
@@ -32,6 +36,19 @@ interface SyncResult {
   updated?: number;
   total?: number;
   totalFetched?: number;
+  pagesProcessed?: number;
+  totalPages?: number;
+}
+
+interface SyncStatusInfo {
+  lastSyncAt: string | null;
+  total: number;
+  status: "synced" | "never";
+}
+
+interface SyncStatusData {
+  contacts: SyncStatusInfo;
+  messages: SyncStatusInfo;
 }
 
 interface HalosisContact {
@@ -66,6 +83,7 @@ interface BlastSummary {
   total_delivered: number;
   total_read: number;
   total_failed: number;
+  total_replied: number;
   first_sent: string | null;
   last_sent: string | null;
 }
@@ -76,6 +94,18 @@ interface BlastRecipient {
   sent_at: string | null;
   email?: string;
   name?: string;
+  message_body?: string;
+  has_reply?: boolean;
+}
+
+interface ConversationMessage {
+  message: string;
+  direction: "in" | "out";
+  agent_name: string | null;
+  status: string;
+  sent_at: string;
+  from_phone: string;
+  to_phone: string;
 }
 
 interface PaginatedResponse<T> {
@@ -119,6 +149,8 @@ export default function HalosisPage() {
   const [syncing, setSyncing] = useState<"contacts" | "messages" | null>(null);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatusData | null>(null);
+  const [syncStatusLoading, setSyncStatusLoading] = useState(true);
 
   // Contacts state
   const [contacts, setContacts] = useState<HalosisContact[]>([]);
@@ -157,6 +189,11 @@ export default function HalosisPage() {
   const [blastRecipientsTotalPages, setBlastRecipientsTotalPages] = useState(0);
   const [exportingBlast, setExportingBlast] = useState(false);
   const [blastsSyncing, setBlastsSyncing] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState<BlastRecipient | null>(null);
+  const [conversation, setConversation] = useState<ConversationMessage[]>([]);
+  const [conversationLoading, setConversationLoading] = useState(false);
+  const [blastsSortField, setBlastsSortField] = useState<string>("last_sent");
+  const [blastsSortDir, setBlastsSortDir] = useState<"asc" | "desc">("desc");
 
   async function syncContacts() {
     setSyncing("contacts");
@@ -167,6 +204,7 @@ export default function HalosisPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Sync gagal");
       setSyncResult(data);
+      fetchSyncStatus();
       fetchContacts(1, contactsSearch);
     } catch (e) {
       setSyncError(e instanceof Error ? e.message : "Terjadi kesalahan");
@@ -190,6 +228,7 @@ export default function HalosisPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Sync gagal");
       setSyncResult(data);
+      fetchSyncStatus();
       fetchMessages(1, messagesSearch, messagesType, messagesTemplate, messagesStartDate, messagesEndDate);
     } catch (e) {
       setSyncError(e instanceof Error ? e.message : "Terjadi kesalahan");
@@ -235,6 +274,19 @@ export default function HalosisPage() {
       setMessages([]);
     } finally {
       setMessagesLoading(false);
+    }
+  }, []);
+
+  const fetchSyncStatus = useCallback(async () => {
+    setSyncStatusLoading(true);
+    try {
+      const res = await fetch("/api/halosis/sync-status");
+      const data = await res.json();
+      if (data.contacts) setSyncStatus(data);
+    } catch {
+      // silent
+    } finally {
+      setSyncStatusLoading(false);
     }
   }, []);
 
@@ -288,6 +340,7 @@ export default function HalosisPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Sync gagal");
       setSyncResult(data);
+      fetchSyncStatus();
     } catch (e) {
       setSyncError(e instanceof Error ? e.message : "Terjadi kesalahan");
     } finally {
@@ -320,6 +373,10 @@ export default function HalosisPage() {
   };
 
   useEffect(() => {
+    fetchSyncStatus();
+  }, [fetchSyncStatus]);
+
+  useEffect(() => {
     if (activeTab === "contacts") fetchContacts(contactsPage, contactsSearch);
   }, [activeTab, contactsPage, contactsSearch, fetchContacts]);
 
@@ -342,6 +399,158 @@ export default function HalosisPage() {
     if (expandedBlast) fetchBlastRecipients(expandedBlast, blastRecipientsPage);
   }, [blastRecipientsPage, expandedBlast, fetchBlastRecipients]);
 
+  useEffect(() => {
+    if (!selectedRecipient) { setConversation([]); return; }
+    setConversationLoading(true);
+    fetch(`/api/halosis/conversations/${encodeURIComponent(selectedRecipient.to_phone)}`)
+      .then(r => r.json())
+      .then(d => setConversation(d.messages || []))
+      .catch(() => setConversation([]))
+      .finally(() => setConversationLoading(false));
+  }, [selectedRecipient]);
+
+  function handleBlastsSort(field: string) {
+    setBlastsSortDir(prev => blastsSortField === field ? (prev === "asc" ? "desc" : "asc") : "desc");
+    setBlastsSortField(field);
+  }
+
+  const sortedBlasts = [...blasts].sort((a, b) => {
+    const aVal = (a as any)[blastsSortField];
+    const bVal = (b as any)[blastsSortField];
+    if (aVal == null) return 1;
+    if (bVal == null) return -1;
+    const cmp = typeof aVal === "string" ? aVal.localeCompare(bVal) : aVal - bVal;
+    return blastsSortDir === "asc" ? cmp : -cmp;
+  });
+
+  function formatTimeAgo(dateStr: string | null): string {
+    if (!dateStr) return "Tidak pernah";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Baru saja";
+    if (mins < 60) return `${mins} menit yang lalu`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} jam yang lalu`;
+    const days = Math.floor(hours / 24);
+    return `${days} hari yang lalu`;
+  }
+
+  function formatTime(dateStr: string): string {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    } catch { return dateStr; }
+  }
+
+  function SyncCard({
+    icon,
+    title,
+    desc,
+    btnLabel,
+    onSync,
+    syncType,
+    statusInfo,
+    result,
+  }: {
+    icon: React.ReactNode;
+    title: string;
+    desc: string;
+    btnLabel: string;
+    onSync: () => void;
+    syncType: "contacts" | "messages";
+    statusInfo: SyncStatusInfo | undefined;
+    result: SyncResult | null;
+  }) {
+    const isSyncing = syncing === syncType;
+    const progress = result?.pagesProcessed && result?.totalPages
+      ? Math.round((result.pagesProcessed / result.totalPages) * 100)
+      : null;
+    const isLastResult = syncResult === result;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: syncType === "contacts" ? 0.05 : 0.1 }}
+        className="card p-5 space-y-4"
+      >
+        <div className="flex items-start gap-3">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${
+            syncType === "contacts"
+              ? "bg-blue-500/15"
+              : "bg-emerald-500/15"
+          }`}>
+            {icon}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-semibold text-white">{title}</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">{desc}</p>
+          </div>
+        </div>
+
+        {/* Sync Status Info */}
+        {statusInfo && !isSyncing && statusInfo.status === "synced" && (
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-zinc-500">
+            <span className="flex items-center gap-1.5">
+              <Clock size={12} className="text-zinc-600" />
+              Terakhir: <span className="text-zinc-300">{formatTimeAgo(statusInfo.lastSyncAt)}</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <BarChart3 size={12} className="text-zinc-600" />
+              {statusInfo.total.toLocaleString()} tersimpan
+            </span>
+          </div>
+        )}
+
+        {statusInfo && !isSyncing && statusInfo.status === "never" && (
+          <div className="flex items-center gap-1.5 text-xs text-amber-500">
+            <AlertCircle size={12} />
+            Belum pernah sync
+          </div>
+        )}
+
+        {/* Progress Bar saat sync */}
+        {isSyncing && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-400 flex items-center gap-1.5">
+                <Loader2 size={12} className="animate-spin" />
+                {progress !== null && result
+                  ? `Memproses halaman ${result.pagesProcessed} dari ${result.totalPages}`
+                  : "Menyinkronkan..."
+                }
+              </span>
+              {progress !== null && (
+                <span className="text-zinc-500 tabular-nums">{progress}%</span>
+              )}
+            </div>
+            <div className="w-full h-1.5 bg-white/8 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: progress ? `${progress}%` : "30%" }}
+                transition={{ duration: 0.3 }}
+                className={`h-full rounded-full ${syncType === "contacts" ? "bg-blue-500" : "bg-emerald-500"}`}
+              />
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={onSync}
+          disabled={syncing !== null}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${
+            syncType === "contacts"
+              ? "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
+              : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+          }`}
+        >
+          <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
+          {isSyncing ? "Menyinkronkan..." : btnLabel}
+        </button>
+      </motion.div>
+    );
+  }
+
   function renderSyncTab() {
     return (
       <div className="space-y-4">
@@ -355,11 +564,28 @@ export default function HalosisPage() {
               <p className="text-sm font-medium text-white">Halosis API</p>
               <p className="text-xs text-zinc-500">api.halosis.id</p>
             </div>
+            <div className="ml-auto flex items-center gap-2">
+              {syncStatusLoading && (
+                <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+                  <Loader2 size={11} className="animate-spin" />
+                  Memuat status...
+                </span>
+              )}
+              {!syncStatusLoading && syncStatus && (
+                <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
+                  Terhubung
+                </span>
+              )}
+            </div>
             <a
               href="https://docs.halosis.id"
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
             >
               Docs <ExternalLink className="h-3 w-3" />
             </a>
@@ -367,69 +593,67 @@ export default function HalosisPage() {
         </div>
 
         {/* Sync Contacts */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="card p-5 space-y-4"
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15">
-                <Users className="h-5 w-5 text-blue-400" />
-              </div>
-              <div>
-                <h2 className="text-base font-semibold text-white">Sync Kontak</h2>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  Ambil kontak & label WA dari Halosis, sinkronisasi ke database CRM.
-                </p>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={syncContacts}
-            disabled={syncing !== null}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <RefreshCw className={cn("h-4 w-4", syncing === "contacts" && "animate-spin")} />
-            {syncing === "contacts" ? "Menyinkronkan..." : "Sync Kontak Sekarang"}
-          </button>
-        </motion.div>
+        <SyncCard
+          icon={<Users className="h-5 w-5 text-blue-400" />}
+          title="Sync Kontak"
+          desc="Ambil kontak & label WA dari Halosis, sinkronisasi ke database CRM."
+          btnLabel="Sync Kontak Sekarang"
+          onSync={syncContacts}
+          syncType="contacts"
+          statusInfo={syncStatus?.contacts}
+          result={syncResult}
+        />
 
         {/* Sync Messages */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="card p-5 space-y-4"
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15">
-                <MessageSquare className="h-5 w-5 text-emerald-400" />
-              </div>
-              <div>
-                <h2 className="text-base font-semibold text-white">Sync Riwayat Pesan</h2>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  Ambil riwayat percakapan 30 hari terakhir dari Halosis.
-                </p>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={syncMessages}
-            disabled={syncing !== null}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+        <SyncCard
+          icon={<MessageSquare className="h-5 w-5 text-emerald-400" />}
+          title="Sync Riwayat Pesan"
+          desc="Ambil riwayat percakapan 30 hari terakhir dari Halosis."
+          btnLabel="Sync Riwayat 30 Hari"
+          onSync={syncMessages}
+          syncType="messages"
+          statusInfo={syncStatus?.messages}
+          result={syncResult}
+        />
+
+        {/* Summary Bar */}
+        {syncStatus && !syncing && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card p-4 bg-white/[0.02] border-dashed border-white/5"
           >
-            <RefreshCw className={cn("h-4 w-4", syncing === "messages" && "animate-spin")} />
-            {syncing === "messages" ? "Menyinkronkan..." : "Sync Riwayat 30 Hari"}
-          </button>
-        </motion.div>
+            <div className="flex items-center gap-6 text-xs text-zinc-500">
+              <span className="flex items-center gap-1.5">
+                <Users size={13} className="text-blue-400" />
+                <strong className="text-white font-medium tabular-nums">{syncStatus.contacts.total.toLocaleString()}</strong>
+                Kontak
+              </span>
+              <span className="text-white/10">|</span>
+              <span className="flex items-center gap-1.5">
+                <MessageSquare size={13} className="text-emerald-400" />
+                <strong className="text-white font-medium tabular-nums">{syncStatus.messages.total.toLocaleString()}</strong>
+                Pesan
+              </span>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Sync Message Info saat loading */}
+        {syncing === "messages" && syncResult && syncResult.pagesProcessed && (
+          <div className="card p-3 border border-emerald-500/20 bg-emerald-500/5">
+            <p className="text-xs text-emerald-300">
+              <Loader2 size={11} className="inline animate-spin mr-1" />
+              Sync pesan: halaman {syncResult.pagesProcessed} dari {syncResult.totalPages || "?"} — {syncResult.totalFetched || 0} pesan terkumpul
+            </p>
+          </div>
+        )}
 
         {/* Result / Error */}
         <AnimatePresence>
-          {syncResult && (
+          {syncResult && syncing === null && (
             <motion.div
+              key="sync-result"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
@@ -440,8 +664,11 @@ export default function HalosisPage() {
                 <div>
                   <p className="text-sm font-medium text-emerald-300">Sync Berhasil</p>
                   <p className="text-xs text-zinc-400 mt-1">{syncResult.message}</p>
-                  {(syncResult.added !== undefined || syncResult.updated !== undefined || syncResult.totalFetched !== undefined) && (
-                    <div className="flex gap-4 mt-2 text-xs">
+                  {(syncResult.pagesProcessed !== undefined || syncResult.added !== undefined || syncResult.updated !== undefined || syncResult.totalFetched !== undefined) && (
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs">
+                      {syncResult.pagesProcessed !== undefined && (
+                        <span className="text-zinc-400">Halaman: <span className="text-white font-medium">{syncResult.pagesProcessed}</span></span>
+                      )}
                       {syncResult.added !== undefined && (
                         <span className="text-zinc-400">Baru: <span className="text-white font-medium">{syncResult.added}</span></span>
                       )}
@@ -459,6 +686,7 @@ export default function HalosisPage() {
           )}
           {syncError && (
             <motion.div
+              key="sync-error"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
@@ -646,12 +874,14 @@ export default function HalosisPage() {
     const totalRead = blasts.reduce((s, b) => s + b.total_read, 0);
     const totalFailed = blasts.reduce((s, b) => s + b.total_failed, 0);
     const totalSent = blasts.reduce((s, b) => s + b.total_sent, 0);
+    const totalReplied = blasts.reduce((s, b) => s + (b.total_replied || 0), 0);
 
     const statCards = [
-      { label: "Total Blast", value: blasts.length, color: "text-blue-400", bg: "bg-blue-500/10" },
-      { label: "Terkirim", value: totalSent.toLocaleString(), color: "text-emerald-400", bg: "bg-emerald-500/10" },
-      { label: "Terbaca", value: totalRead.toLocaleString(), color: "text-violet-400", bg: "bg-violet-500/10" },
-      { label: "Gagal", value: totalFailed.toLocaleString(), color: "text-red-400", bg: "bg-red-500/10" },
+      { label: "Total Blast", value: String(blasts.length), unit: "Template", color: "text-blue-400", bg: "bg-blue-500/10" },
+      { label: "Terkirim", value: totalSent.toLocaleString(), unit: "Pesan", color: "text-emerald-400", bg: "bg-emerald-500/10" },
+      { label: "Terbaca", value: totalRead.toLocaleString(), unit: "Pesan", color: "text-violet-400", bg: "bg-violet-500/10" },
+      { label: "Balas", value: totalReplied.toLocaleString(), unit: "Penerima", color: "text-amber-400", bg: "bg-amber-500/10" },
+      { label: "Gagal", value: totalFailed.toLocaleString(), unit: "Pesan", color: "text-red-400", bg: "bg-red-500/10" },
     ];
 
     const filterBar = (
@@ -693,6 +923,12 @@ export default function HalosisPage() {
           <RefreshCw size={13} className={blastsSyncing ? "animate-spin" : ""} />
           {blastsSyncing ? "Menyinkronkan..." : "Sync Blast"}
         </button>
+        {syncStatus?.messages && syncStatus.messages.status === "synced" && !blastsSyncing && (
+          <span className="flex items-center gap-1.5 text-[10px] text-zinc-600 whitespace-nowrap">
+            <Clock size={10} />
+            Sync: {formatTimeAgo(syncStatus.messages.lastSyncAt)}
+          </span>
+        )}
         <button
           onClick={handleExportBlast}
           disabled={exportingBlast || blasts.length === 0}
@@ -706,9 +942,10 @@ export default function HalosisPage() {
     );
 
     return (
+      <>
       <div className="space-y-4">
         {/* Stat Cards */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-5 gap-3">
           {statCards.map((s, i) => (
             <motion.div
               key={s.label}
@@ -724,6 +961,7 @@ export default function HalosisPage() {
                 <div>
                   <p className="text-xs text-zinc-500">{s.label}</p>
                   <p className={`text-lg font-semibold ${s.color}`}>{s.value}</p>
+                  <p className="text-[10px] text-zinc-600">{s.unit}</p>
                 </div>
               </div>
             </motion.div>
@@ -743,13 +981,14 @@ export default function HalosisPage() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Terkirim</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Terkirim</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Terbaca</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Balas</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Gagal</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500">Rentang Waktu</th>
                   </tr>
                 </thead>
                 <tbody>
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <TableRowSkeleton key={i} cols={6} />
+                    <TableRowSkeleton key={i} cols={7} />
                   ))}
                 </tbody>
               </table>
@@ -761,18 +1000,54 @@ export default function HalosisPage() {
               </div>
             ) : (
               <table className="w-full">
-                <thead>
-                  <tr className="border-b border-white/7">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Template</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Dikirim</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Sampai</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Dibaca</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Gagal</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500">Rentang Waktu</th>
-                  </tr>
-                </thead>
+                  <thead>
+                    <tr className="border-b border-white/7">
+                      <th
+                        onClick={() => handleBlastsSort("template_name")}
+                        className="px-4 py-3 text-left text-xs font-medium text-zinc-500 cursor-pointer hover:text-white transition-colors select-none"
+                      >
+                        Template {blastsSortField === "template_name" && (blastsSortDir === "asc" ? "↑" : "↓")}
+                      </th>
+                      <th
+                        onClick={() => handleBlastsSort("total_sent")}
+                        className="px-4 py-3 text-left text-xs font-medium text-zinc-500 cursor-pointer hover:text-white transition-colors select-none"
+                      >
+                        Dikirim {blastsSortField === "total_sent" && (blastsSortDir === "asc" ? "↑" : "↓")}
+                      </th>
+                      <th
+                        onClick={() => handleBlastsSort("total_delivered")}
+                        className="px-4 py-3 text-left text-xs font-medium text-zinc-500 cursor-pointer hover:text-white transition-colors select-none"
+                      >
+                        Sampai {blastsSortField === "total_delivered" && (blastsSortDir === "asc" ? "↑" : "↓")}
+                      </th>
+                      <th
+                        onClick={() => handleBlastsSort("total_read")}
+                        className="px-4 py-3 text-left text-xs font-medium text-zinc-500 cursor-pointer hover:text-white transition-colors select-none"
+                      >
+                        Dibaca {blastsSortField === "total_read" && (blastsSortDir === "asc" ? "↑" : "↓")}
+                      </th>
+                      <th
+                        onClick={() => handleBlastsSort("total_replied")}
+                        className="px-4 py-3 text-left text-xs font-medium text-zinc-500 cursor-pointer hover:text-white transition-colors select-none"
+                      >
+                        Balas {blastsSortField === "total_replied" && (blastsSortDir === "asc" ? "↑" : "↓")}
+                      </th>
+                      <th
+                        onClick={() => handleBlastsSort("total_failed")}
+                        className="px-4 py-3 text-left text-xs font-medium text-zinc-500 cursor-pointer hover:text-white transition-colors select-none"
+                      >
+                        Gagal {blastsSortField === "total_failed" && (blastsSortDir === "asc" ? "↑" : "↓")}
+                      </th>
+                      <th
+                        onClick={() => handleBlastsSort("last_sent")}
+                        className="px-4 py-3 text-right text-xs font-medium text-zinc-500 cursor-pointer hover:text-white transition-colors select-none"
+                      >
+                        Rentang Waktu {blastsSortField === "last_sent" && (blastsSortDir === "asc" ? "↑" : "↓")}
+                      </th>
+                    </tr>
+                  </thead>
                 <tbody className="divide-y divide-white/5">
-                  {blasts.map((b, i) => (
+                  {sortedBlasts.map((b, i) => (
                     <Fragment key={b.template_name}>
                       <motion.tr
                         initial={{ opacity: 0 }}
@@ -807,6 +1082,16 @@ export default function HalosisPage() {
                           <span className="ml-2 text-xs text-zinc-500">{b.total_read.toLocaleString()}</span>
                         </td>
                         <td className="px-4 py-3">
+                          {(b.total_replied || 0) > 0 ? (
+                            <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/10 text-amber-400">
+                              {((b.total_replied / (b.total_sent || 1)) * 100).toFixed(1)}%
+                            </span>
+                          ) : (
+                            <span className="text-xs text-zinc-600">0</span>
+                          )}
+                          <span className="ml-2 text-xs text-zinc-500">{(b.total_replied || 0).toLocaleString()}</span>
+                        </td>
+                        <td className="px-4 py-3">
                           {b.total_failed > 0 ? (
                             <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-medium bg-red-500/10 text-red-400">
                               {b.total_failed.toLocaleString()}
@@ -826,7 +1111,7 @@ export default function HalosisPage() {
                       </motion.tr>
                       {expandedBlast === b.template_name && (
                         <tr>
-                          <td colSpan={6} className="px-0 pb-0">
+                          <td colSpan={7} className="px-0 pb-0">
                             <motion.div
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: "auto" }}
@@ -851,12 +1136,17 @@ export default function HalosisPage() {
                                         <th className="px-3 py-2 text-left text-[10px] font-medium text-zinc-500">Nama</th>
                                         <th className="px-3 py-2 text-left text-[10px] font-medium text-zinc-500">Email</th>
                                         <th className="px-3 py-2 text-left text-[10px] font-medium text-zinc-500">Status</th>
+                                        <th className="px-3 py-2 text-center text-[10px] font-medium text-zinc-500">Balasan</th>
                                         <th className="px-3 py-2 text-right text-[10px] font-medium text-zinc-500">Waktu Kirim</th>
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
                                       {blastRecipients.map((r, ri) => (
-                                        <tr key={ri} className="hover:bg-white/4 transition-colors duration-150">
+                                        <tr
+                                          key={ri}
+                                          onClick={() => setSelectedRecipient(r)}
+                                          className="hover:bg-white/4 transition-colors duration-150 cursor-pointer"
+                                        >
                                           <td className="px-3 py-2">
                                             <span className="text-xs text-white font-mono">{r.to_phone}</span>
                                           </td>
@@ -870,6 +1160,15 @@ export default function HalosisPage() {
                                             <span className={cn("inline-flex px-2 py-0.5 rounded-md text-[10px] font-medium capitalize", getStatusBadge(r.status))}>
                                               {r.status}
                                             </span>
+                                          </td>
+                                          <td className="px-3 py-2 text-center">
+                                            {r.has_reply ? (
+                                              <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400" title="Ada balasan">
+                                                <Reply size={11} />
+                                              </span>
+                                            ) : (
+                                              <span className="text-[10px] text-zinc-600">—</span>
+                                            )}
                                           </td>
                                           <td className="px-3 py-2 text-right">
                                             <span className="text-[10px] text-zinc-500">{r.sent_at ? formatDate(r.sent_at) : "-"}</span>
@@ -941,6 +1240,121 @@ export default function HalosisPage() {
           )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {selectedRecipient && (
+          <motion.div
+            key="sidebar-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex"
+            onClick={() => setSelectedRecipient(null)}
+          >
+            {/* Backdrop */}
+            <div className="flex-1 bg-black/60 backdrop-blur-sm" />
+            {/* Sidebar */}
+            <motion.div
+              initial={{ x: 320 }}
+              animate={{ x: 0 }}
+              exit={{ x: 320 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-[480px] max-w-full bg-zinc-900 border-l border-white/10 shadow-2xl flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/7 shrink-0">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{selectedRecipient.name || selectedRecipient.to_phone}</p>
+                  <p className="text-[11px] text-zinc-500 mt-0.5 font-mono truncate">{selectedRecipient.to_phone}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {selectedRecipient.email && (
+                    <span className="text-[10px] text-zinc-400 hidden sm:block">{selectedRecipient.email}</span>
+                  )}
+                  {conversation.length > 0 && (
+                    <span className={cn(
+                      "text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0",
+                      conversation[conversation.length - 1].direction === "in"
+                        ? "bg-blue-500/10 text-blue-400"
+                        : "bg-emerald-500/10 text-emerald-400"
+                    )}>
+                      {conversation[conversation.length - 1].direction === "in" ? "↩ User" : "↪ Kita"}
+                    </span>
+                  )}
+                  <span className={cn("inline-flex px-2 py-0.5 rounded-md text-[10px] font-medium capitalize shrink-0", getStatusBadge(selectedRecipient.status))}>
+                    {selectedRecipient.status}
+                  </span>
+                  <button
+                    onClick={() => setSelectedRecipient(null)}
+                    className="flex items-center justify-center h-7 w-7 rounded-lg text-zinc-500 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {conversationLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="h-6 w-6 border-2 border-violet-500/30 border-t-violet-400 rounded-full animate-spin" />
+                  </div>
+                ) : conversation.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <MessageSquare size={24} className="text-zinc-700 mb-2" />
+                    <p className="text-xs text-zinc-500">Tidak ada percakapan</p>
+                  </div>
+                ) : (
+                  conversation.map((msg, i) => (
+                    <div key={i} className={cn("flex", msg.direction === "out" ? "justify-end" : "justify-start")}>
+                      <div
+                        className={cn(
+                          "max-w-[80%] px-3.5 py-2.5 rounded-2xl",
+                          msg.direction === "out"
+                            ? "bg-violet-600/20 border border-violet-500/20 rounded-br-md"
+                            : "bg-zinc-800 border border-white/7 rounded-bl-md"
+                        )}
+                      >
+                        {msg.agent_name && (
+                          <p className="text-[9px] text-violet-400 font-medium mb-1 uppercase tracking-wider">{msg.agent_name}</p>
+                        )}
+                        <p className="text-sm text-zinc-200 leading-relaxed whitespace-pre-wrap break-words">
+                          {msg.message}
+                        </p>
+                        <div className="flex items-center justify-end gap-1.5 mt-1.5">
+                          <span className="text-[10px] text-zinc-600">{formatTime(msg.sent_at)}</span>
+                          {msg.direction === "out" && (
+                            <span className={cn(
+                              "inline-block h-2.5 w-2.5 rounded-full",
+                              msg.status === "read" ? "bg-emerald-500" :
+                              msg.status === "delivered" ? "bg-emerald-500/60" :
+                              msg.status === "failed" ? "bg-red-500" : "bg-zinc-600"
+                            )} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between px-5 py-3 border-t border-white/5 shrink-0">
+                <span className="text-[10px] text-zinc-600">{conversation.length} pesan</span>
+                <button
+                  onClick={() => setSelectedRecipient(null)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-zinc-300 hover:bg-white/10 transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
     );
   }
 
