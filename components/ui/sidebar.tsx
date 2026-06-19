@@ -43,7 +43,6 @@ function isGroup(item: NavItem): item is NavGroup {
 const navItems: NavItem[] = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/customers", icon: Users, label: "Customers" },
-  { href: "/activities", icon: Activity, label: "Activities" },
   { href: "/campaigns", icon: Megaphone, label: "Campaigns" },
   {
     label: "Reports",
