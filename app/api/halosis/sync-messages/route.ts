@@ -16,42 +16,68 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createAdminClient();
     let totalFetched = 0;
-    let page = 1;
+    let totalPages = 0;
 
-    while (true) {
-      const response = await getMessageHistory(start, end, page);
-      const messages = response.data;
-      const meta = response.meta;
+    // Partition date range into 3-day chunks to avoid Halosis API timeout
+    const chunkDays = 3;
+    const startDateObj = new Date(start);
+    const endDateObj = new Date(end);
+    const chunks: { start: string; end: string }[] = [];
+    let cursor = new Date(startDateObj);
+    while (cursor < endDateObj) {
+      const chunkEnd = new Date(Math.min(cursor.getTime() + chunkDays * 86400000, endDateObj.getTime()));
+      chunks.push({
+        start: cursor.toISOString().split("T")[0],
+        end: chunkEnd.toISOString().split("T")[0],
+      });
+      cursor = chunkEnd;
+    }
 
-      if (!messages || messages.length === 0) break;
-
-      const newMessages = messages
-        .filter((msg: any) => msg.wam_id)
-        .map((msg: any) => ({
-          id: msg.wam_id,
-          from_phone: msg.from_phone_number,
-          to_phone: msg.to_phone_number,
-          type: msg.session_status,
-          template_name: msg.template_name,
-          status: mapStatus(msg.session_status),
-          sent_at: msg.created_time,
-          raw_json: msg,
-          synced_at: new Date().toISOString(),
-        }));
-
-      if (newMessages.length > 0) {
-        const { error } = await supabase
-          .from("halosis_messages")
-          .upsert(newMessages, { onConflict: "id", ignoreDuplicates: true });
-
-        if (error) {
-          console.error("Upsert error:", error);
+    for (const range of chunks) {
+      let page = 1;
+      while (true) {
+        let response;
+        try {
+          response = await getMessageHistory(range.start, range.end, page);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`Halosis API error for ${range.start}-${range.end} page ${page}:`, msg);
+          break;
         }
-      }
+        const messages = response.data;
+        const meta = response.meta;
 
-      totalFetched += messages.length;
-      if (page >= meta.last_page) break;
-      page++;
+        if (!messages || messages.length === 0) break;
+
+        const newMessages = messages
+          .filter((msg: any) => msg.wam_id)
+          .map((msg: any) => ({
+            id: msg.wam_id,
+            from_phone: msg.from_phone_number,
+            to_phone: msg.to_phone_number,
+            type: msg.session_status,
+            template_name: msg.template_name,
+            status: mapStatus(msg.session_status),
+            sent_at: msg.created_time,
+            raw_json: msg,
+            synced_at: new Date().toISOString(),
+          }));
+
+        if (newMessages.length > 0) {
+          const { error } = await supabase
+            .from("halosis_messages")
+            .upsert(newMessages, { onConflict: "id", ignoreDuplicates: true });
+
+          if (error) {
+            console.error("Upsert error:", error);
+          }
+        }
+
+        totalFetched += messages.length;
+        totalPages++;
+        if (page >= meta.last_page) break;
+        page++;
+      }
     }
 
     // Mark inbound messages as read (optimized: batch update without fetching all first)
@@ -79,7 +105,8 @@ export async function POST(req: NextRequest) {
       success: true,
       message: `Sync selesai: ${totalFetched} pesan dari Halosis (${start} - ${end}).`,
       totalFetched,
-      pagesProcessed: page,
+      pagesProcessed: totalPages,
+      dateChunks: chunks.length,
       period: { start, end },
     });
   } catch (error) {
