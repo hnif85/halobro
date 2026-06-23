@@ -25,27 +25,27 @@ export async function POST(req: NextRequest) {
 
       if (!messages || messages.length === 0) break;
 
-      for (const msg of messages) {
-        if (!msg.wam_id) continue;
+      const newMessages = messages
+        .filter((msg: any) => msg.wam_id)
+        .map((msg: any) => ({
+          id: msg.wam_id,
+          from_phone: msg.from_phone_number,
+          to_phone: msg.to_phone_number,
+          type: msg.session_status,
+          template_name: msg.template_name,
+          status: mapStatus(msg.session_status),
+          sent_at: msg.created_time,
+          raw_json: msg,
+          synced_at: new Date().toISOString(),
+        }));
 
-        const { data: existing } = await supabase
+      if (newMessages.length > 0) {
+        const { error } = await supabase
           .from("halosis_messages")
-          .select("id")
-          .eq("id", msg.wam_id)
-          .maybeSingle();
+          .upsert(newMessages, { onConflict: "id", ignoreDuplicates: true });
 
-        if (!existing) {
-          await supabase.from("halosis_messages").insert({
-            id: msg.wam_id,
-            from_phone: msg.from_phone_number,
-            to_phone: msg.to_phone_number,
-            type: msg.session_status,
-            template_name: msg.template_name,
-            status: mapStatus(msg.session_status),
-            sent_at: msg.created_time,
-            raw_json: msg,
-            synced_at: new Date().toISOString(),
-          });
+        if (error) {
+          console.error("Upsert error:", error);
         }
       }
 
@@ -54,14 +54,15 @@ export async function POST(req: NextRequest) {
       page++;
     }
 
-    // Mark as read for recipients who replied (they appear as from_phone)
+    // Mark inbound messages as read (optimized: batch update without fetching all first)
     const { data: repliers } = await supabase
       .from("halosis_messages")
       .select("from_phone")
-      .not("from_phone", "is", null);
+      .not("from_phone", "is", null)
+      .neq("status", "read")
+      .neq("status", "failed");
     const replyPhones = [...new Set((repliers || []).map((r: any) => r.from_phone).filter(Boolean))] as string[];
     if (replyPhones.length > 0) {
-      // chunk to avoid overly long IN clauses
       const chunkSize = 100;
       for (let i = 0; i < replyPhones.length; i += chunkSize) {
         const chunk = replyPhones.slice(i, i + chunkSize);
@@ -69,7 +70,8 @@ export async function POST(req: NextRequest) {
           .from("halosis_messages")
           .update({ status: "read" })
           .in("to_phone", chunk)
-          .neq("status", "failed");
+          .neq("status", "failed")
+          .neq("status", "read");
       }
     }
 
